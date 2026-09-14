@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Branding System — Visual Walkthrough</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg: #0D0F14;
+    --panel: #161922;
+    --panel-2: #1C202B;
+    --line: #2A2F3D;
+    --text: #EDEFF3;
+    --muted: #8B92A3;
+    --accent: #7C6CFF;
+    --accent-soft: #7C6CFF22;
+    --good: #5FBF8F;
+    --lock: #9AA0AC;
+
+    --h1: 'Space Grotesk', sans-serif;
+    --body: 'Source Serif 4', serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--bg); }
+  body{ color:var(--text); font-family:var(--body); font-size:17px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:820px; margin:0 auto; padding:0 24px 100px; }
+
+  .hue-strip{ width:100%; height:72px;
+    background: linear-gradient(90deg, oklch(62% 0.19 280), oklch(66% 0.17 230), oklch(70% 0.15 190),
+      oklch(74% 0.16 150), oklch(78% 0.17 95), oklch(72% 0.19 55), oklch(64% 0.22 20), oklch(58% 0.24 340), oklch(62% 0.19 280));
+  }
+
+  header.hero{ padding:52px 0 36px; }
+  .kicker{ font-family:var(--mono); font-size:13px; color:var(--accent); margin-bottom:14px; }
+  h1{ font-family:var(--h1); font-weight:600; font-size:36px; line-height:1.18; margin:0 0 16px; letter-spacing:-0.01em; }
+  .subhead{ color:var(--muted); font-size:17px; max-width:58ch; margin:0; }
+
+  hr.rule{ border:none; border-top:1px solid var(--line); margin:46px 0 36px; }
+  h2{ font-family:var(--h1); font-weight:600; font-size:23px; margin:0 0 10px; }
+  .lede{ color:var(--muted); font-size:15.5px; margin-bottom:26px; max-width:60ch; }
+  p{ margin:0 0 16px; }
+
+  /* three ideas */
+  .idea-row{ display:flex; gap:12px; margin-bottom:8px; }
+  .idea{ flex:1; border:1px solid var(--line); background:var(--panel); padding:20px 16px; text-align:center; }
+  .idea .glyph{ font-family:var(--mono); font-size:26px; color:var(--accent); margin-bottom:10px; }
+  .idea .t{ font-family:var(--h1); font-weight:600; font-size:16px; margin-bottom:8px; }
+  .idea .d{ font-size:13.5px; color:var(--muted); line-height:1.5; }
+  .idea-arrow{ align-self:center; color:var(--muted); font-family:var(--mono); font-size:18px; padding:0 2px; }
+
+  /* system design flow */
+  .flow{ border:1px solid var(--line); background:var(--panel); padding:26px 22px; margin-bottom:14px; }
+  .flow-title{ font-family:var(--mono); font-size:12px; color:var(--accent); margin-bottom:18px; }
+  .step{ display:flex; gap:14px; align-items:flex-start; padding:12px 0; border-bottom:1px solid var(--line); }
+  .step:last-child{ border-bottom:none; }
+  .step .num{ font-family:var(--h1); font-weight:700; font-size:14px; color:var(--bg); background:var(--accent);
+    width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .step .body{ flex:1; }
+  .step .t{ font-family:var(--h1); font-weight:600; font-size:15px; margin-bottom:3px; }
+  .step .d{ font-size:14px; color:var(--muted); }
+
+  /* UI mockup */
+  .mock-panel{ border:1px solid var(--line); background:var(--panel-2); padding:22px; margin-bottom:12px; }
+  .mock-field{ margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid var(--line); }
+  .mock-field:last-child{ margin-bottom:0; padding-bottom:0; border-bottom:none; }
+  .mock-label{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .mock-label .name{ font-family:var(--h1); font-weight:600; font-size:14.5px; }
+  .mock-label .tag{ font-family:var(--mono); font-size:10.5px; padding:2px 8px; border:1px solid var(--line); color:var(--muted); }
+
+  /* locked */
+  .mock-locked{ display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--panel); border:1px solid var(--line); opacity:0.6; }
+  .mock-locked .swatch{ width:22px; height:22px; background:#4B5563; border:1px solid var(--line); }
+  .mock-locked .val{ font-family:var(--mono); font-size:13px; color:var(--muted); }
+  .mock-locked .l{ margin-left:auto; color:var(--lock); font-family:var(--mono); font-size:15px; }
+
+  /* guided slider */
+  .mock-slider-track{ height:4px; background:var(--line); position:relative; border-radius:2px; margin:14px 4px; }
+  .mock-slider-track .fill{ position:absolute; left:0; top:0; height:100%; width:62%; background:var(--accent); border-radius:2px; }
+  .mock-slider-track .thumb{ position:absolute; left:62%; top:50%; transform:translate(-50%,-50%); width:14px; height:14px;
+    background:var(--text); border-radius:50%; border:2px solid var(--accent); }
+  .mock-slider-labels{ display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; color:var(--muted); }
+
+  /* direct swatches */
+  .mock-swatches{ display:flex; gap:8px; }
+  .mock-swatches .sw{ width:34px; height:34px; border:2px solid transparent; }
+  .mock-swatches .sw.active{ border-color:var(--text); }
+
+  /* select/segmented (radius etc) */
+  .mock-segmented{ display:flex; gap:8px; }
+  .mock-segmented .opt{ flex:1; text-align:center; padding:10px 8px; border:1px solid var(--line); font-family:var(--h1); font-size:13px; color:var(--muted); cursor:default; }
+  .mock-segmented .opt.active{ border-color:var(--accent); color:var(--text); background:var(--accent-soft); }
+  .mock-segmented .opt .shape{ width:26px; height:16px; background:var(--muted); margin:0 auto 6px; }
+  .mock-segmented .opt.active .shape{ background:var(--accent); }
+  .mock-segmented .opt:nth-child(1) .shape{ border-radius:1px; }
+  .mock-segmented .opt:nth-child(2) .shape{ border-radius:5px; }
+  .mock-segmented .opt:nth-child(3) .shape{ border-radius:8px; }
+
+  /* raw json */
+  .mock-raw{ background:var(--bg); border:1px solid var(--line); padding:12px 14px; font-family:var(--mono); font-size:12.5px; color:var(--muted); white-space:pre; overflow-x:auto; }
+  .mock-raw .k{ color:#88C0D0; }
+  .mock-raw .s{ color:#A3BE8C; }
+
+  /* config code */
+  pre.code{ background:var(--panel); border:1px solid var(--line); padding:18px 20px; font-family:var(--mono); font-size:13px;
+    color:var(--text); overflow-x:auto; line-height:1.7; margin:0 0 24px; }
+  pre.code .c{ color:var(--muted); }
+  pre.code .k{ color:#88C0D0; }
+  pre.code .s{ color:#A3BE8C; }
+  pre.code .n{ color:#D08770; }
+
+  /* glossary */
+  .gloss{ border:1px solid var(--line); }
+  .gloss .row{ display:flex; padding:14px 18px; border-bottom:1px solid var(--line); }
+  .gloss .row:last-child{ border-bottom:none; }
+  .gloss .term{ width:150px; flex-shrink:0; font-family:var(--h1); font-weight:600; font-size:14.5px; color:var(--accent); }
+  .gloss .def{ font-size:14.5px; color:var(--text); }
+
+  footer{ margin-top:56px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); font-family:var(--mono); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="hue-strip"></div>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="kicker">visual walkthrough · plain language</div>
+    <h1>How the branding system actually works.</h1>
+    <p class="subhead">No jargon — just the shapes, the screens, and the flow of data from a business owner's slider to a visitor's browser.</p>
+  </header>
+
+  <section>
+    <h2>Three ideas, and that's most of it</h2>
+    <p class="lede">Everything else in the system is built from these three pieces.</p>
+    <div class="idea-row">
+      <div class="idea"><div class="glyph">✎</div><div class="t">Draft</div><div class="d">What the owner is editing right now. Not shown to visitors yet.</div></div>
+      <div class="idea-arrow">→</div>
+      <div class="idea"><div class="glyph">▶</div><div class="t">Publish</div><div class="d">The button. Turns a draft into something safe to show.</div></div>
+      <div class="idea-arrow">→</div>
+      <div class="idea"><div class="glyph">◈</div><div class="t">Snapshot</div><div class="d">A frozen, saved copy. This is what visitors actually see.</div></div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>What happens when an owner edits their theme</h2>
+    <p class="lede">This is the "editing" side — nothing here touches the live site yet.</p>
+    <div class="flow">
+      <div class="flow-title">EDITING FLOW</div>
+      <div class="step"><div class="num">1</div><div class="body"><div class="t">Owner drags a slider or picks a color</div><div class="d">In their settings screen — a control panel you build for them.</div></div></div>
+      <div class="step"><div class="num">2</div><div class="body"><div class="t">It's saved as a Draft</div><div class="d">Stored in the database, just for that one business. Nobody else sees it.</div></div></div>
+      <div class="step"><div class="num">3</div><div class="body"><div class="t">They see a live preview</div><div class="d">Their screen updates instantly, so they know what it'll look like.</div></div></div>
+      <div class="step"><div class="num">4</div><div class="body"><div class="t">They click "Publish"</div><div class="d">Only now does anything change for real visitors.</div></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What happens when a visitor loads the site</h2>
+    <p class="lede">This is the "visiting" side — it never re-does any work, it just looks something up.</p>
+    <div class="flow">
+      <div class="flow-title">VISITING FLOW</div>
+      <div class="step"><div class="num">1</div><div class="body"><div class="t">A visitor opens the tenant's website</div><div class="d">e.g. acme.yourplatform.com</div></div></div>
+      <div class="step"><div class="num">2</div><div class="body"><div class="t">The server checks which business this is</div><div class="d">From the web address, the same way it already routes to the right tenant's content.</div></div></div>
+      <div class="step"><div class="num">3</div><div class="body"><div class="t">It grabs that business's current Snapshot</div><div class="d">Already fully built — no calculation happens here, just a quick lookup.</div></div></div>
+      <div class="step"><div class="num">4</div><div class="body"><div class="t">The page loads already branded</div><div class="d">Right colors from the very first paint. No flicker, no flash of the wrong brand.</div></div></div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>What the owner's screen looks like</h2>
+    <p class="lede">This is a real brand kit, not a toy example — the fields a business actually needs, plus two the platform locks on purpose.</p>
+    <div class="mock-panel">
+
+      <div class="mock-field">
+        <div class="mock-label"><span class="name">Logo</span><span class="tag">direct · asset</span></div>
+        <div class="mock-swatches">
+          <div class="sw active" style="background:#1C202B; border:1px dashed var(--muted); display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:9px; color:var(--muted);">light</div>
+          <div class="sw" style="background:#EDEFF3; border:1px dashed var(--muted); display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:9px; color:#0D0F14;">dark</div>
+        </div>
+      </div>
+
+      <div class="mock-field">
+        <div class="mock-label"><span class="name">Semantic colors</span><span class="tag">locked · derived</span></div>
+        <div class="mock-locked">
+          <div class="swatch" style="background:#5FBF8F"></div>
+          <div class="swatch" style="background:#E0A030"></div>
+          <div class="swatch" style="background:#E05B5B"></div>
+          <div class="val">fixed hues, matched to brand's intensity</div>
+          <div class="l">🔒</div>
+        </div>
+      </div>
+
+      <div class="mock-field">
+        <div class="mock-label"><span class="name">Heading font</span><span class="tag">guided · select</span></div>
+        <div class="mock-segmented">
+          <div class="opt active">Space Grotesk</div>
+          <div class="opt">Inter</div>
+          <div class="opt">IBM Plex Sans</div>
+        </div>
+      </div>
+
+      <div class="mock-field">
+        <div class="mock-label"><span class="name">Corner style</span><span class="tag">guided · select</span></div>
+        <div class="mock-segmented">
+          <div class="opt"><div class="shape"></div>Sharp</div>
+          <div class="opt active"><div class="shape"></div>Soft</div>
+          <div class="opt"><div class="shape"></div>Round</div>
+        </div>
+      </div>
+
+      <div class="mock-field">
+        <div class="mock-label"><span class="name">Density</span><span class="tag">guided · select</span></div>
+        <div class="mock-segmented">
+          <div class="opt active">Compact</div>
+          <div class="opt">Comfortable</div>
+        </div>
+      </div>
+
+      <div class="mock-field">
+        <div class="mock-label"><span class="name">Accent color</span><span class="tag">direct</span></div>
+        <div class="mock-swatches">
+          <div class="sw active" style="background:#7C6CFF"></div>
+          <div class="sw" style="background:#5FBF8F"></div>
+          <div class="sw" style="background:#E0A030"></div>
+          <div class="sw" style="background:#E05B5B"></div>
+          <div class="sw" style="background:#3B82F6"></div>
+        </div>
+      </div>
+
+      <div class="mock-field">
+        <div class="mock-label"><span class="name">Advanced tokens</span><span class="tag">raw</span></div>
+        <div class="mock-raw">{
+  <span class="k">"--radius"</span>: <span class="s">"0.4rem"</span>,
+  <span class="k">"--shadow-strength"</span>: <span class="s">"0.12"</span>,
+  <span class="k">"--border-hue-shift"</span>: <span class="s">"-8deg"</span>
+}</div>
+      </div>
+
+    </div>
+    <p class="lede" style="margin-top:8px;">Semantic colors are locked on purpose — an owner repainting "error" to match their brand would make error states stop reading as errors. Font choice is a curated list even here, never free text, for licensing reasons as much as design ones.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>How a developer sets this up</h2>
+    <p class="lede">The developer decides which tier each field gets, once, in a small config file. Nothing fancier than this.</p>
+    <pre class="code"><span class="c">// This is the developer's config — decided once per product, not per tenant</span>
+{
+  <span class="k">"companyName"</span>:    { <span class="k">"tier"</span>: <span class="s">"direct"</span> },
+  <span class="k">"logo"</span>:           { <span class="k">"tier"</span>: <span class="s">"direct"</span>, <span class="k">"type"</span>: <span class="s">"asset"</span>, <span class="k">"variants"</span>: [<span class="s">"light"</span>, <span class="s">"dark"</span>] },
+  <span class="k">"brandColor"</span>:     { <span class="k">"tier"</span>: <span class="s">"direct"</span> },
+  <span class="k">"semanticColors"</span>: { <span class="k">"tier"</span>: <span class="s">"locked"</span> },
+  <span class="k">"headingFont"</span>:    { <span class="k">"tier"</span>: <span class="s">"guided"</span>, <span class="k">"type"</span>: <span class="s">"select"</span>, <span class="k">"options"</span>: [
+                      { <span class="k">"label"</span>: <span class="s">"Inter"</span>,          <span class="k">"value"</span>: <span class="s">"inter"</span> },
+                      { <span class="k">"label"</span>: <span class="s">"Space Grotesk"</span>,  <span class="k">"value"</span>: <span class="s">"space-grotesk"</span> },
+                      { <span class="k">"label"</span>: <span class="s">"IBM Plex Sans"</span>,  <span class="k">"value"</span>: <span class="s">"ibm-plex-sans"</span> }
+                    ] },
+  <span class="k">"radius"</span>:         { <span class="k">"tier"</span>: <span class="s">"guided"</span>, <span class="k">"type"</span>: <span class="s">"select"</span>, <span class="k">"options"</span>: [
+                      { <span class="k">"label"</span>: <span class="s">"Sharp"</span>, <span class="k">"value"</span>: <span class="s">"0.125rem"</span> },
+                      { <span class="k">"label"</span>: <span class="s">"Soft"</span>,  <span class="k">"value"</span>: <span class="s">"0.5rem"</span> },
+                      { <span class="k">"label"</span>: <span class="s">"Round"</span>, <span class="k">"value"</span>: <span class="s">"1rem"</span> }
+                    ] },
+  <span class="k">"density"</span>:        { <span class="k">"tier"</span>: <span class="s">"guided"</span>, <span class="k">"type"</span>: <span class="s">"select"</span>, <span class="k">"options"</span>: [
+                      { <span class="k">"label"</span>: <span class="s">"Compact"</span>,     <span class="k">"value"</span>: <span class="s">"0.875"</span> },
+                      { <span class="k">"label"</span>: <span class="s">"Comfortable"</span>, <span class="k">"value"</span>: <span class="s">"1"</span> }
+                    ] },
+  <span class="k">"elevation"</span>:      { <span class="k">"tier"</span>: <span class="s">"guided"</span>, <span class="k">"type"</span>: <span class="s">"slider"</span>, <span class="k">"min"</span>: <span class="n">0</span>, <span class="k">"max"</span>: <span class="n">100</span> },
+  <span class="k">"advancedTokens"</span>: { <span class="k">"tier"</span>: <span class="s">"raw"</span> }
+}</pre>
+    <p class="lede" style="margin-top:-10px;">Eight fields shown, all live at once — an <strong>illustrative subset</strong>. The reference brand kit in guideline §33 has thirteen, adding <code>bodyFont</code>, <code>neutralTone</code>, <code>buttonStyle</code>, <code>supportUrl</code> and <code>emailSenderName</code>. Nothing in the schema limits how many are active; this mockup is trimmed to fit on one screen.</p>
+    <p class="lede" style="margin-top:-4px;">Notice <code>semanticColors</code> is locked by the developer, not by the owner's choice — an agency-tier profile would flip just that one entry to <code>direct</code>, same schema, different profile row (§17). Select options are <code>{ label, value }</code> pairs, never bare strings: the label is what the owner reads, the value is what lands in the token.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Plain-language glossary</h2>
+    <div class="gloss">
+      <div class="row"><div class="term">Site</div><div class="def">The thing that has a theme — one domain, one brand. This is what everything in the database is keyed by.</div></div>
+      <div class="row"><div class="term">Account</div><div class="def">A login. Owns one or more sites — an agency managing ten client brands is one account with ten sites.</div></div>
+      <div class="row"><div class="term">Tenant</div><div class="def">The everyday word for a business using your platform. In practice it means one site; the code always says "site".</div></div>
+      <div class="row"><div class="term">Profile</div><div class="def">A reusable template of tier settings — "free", "pro", "agency". Copied into a site when it's created; the two are independent afterwards.</div></div>
+      <div class="row"><div class="term">Draft</div><div class="def">The in-progress version of a theme. Only the owner sees it.</div></div>
+      <div class="row"><div class="term">Snapshot</div><div class="def">A saved, frozen theme. Safe to show real visitors.</div></div>
+      <div class="row"><div class="term">Publish</div><div class="def">Turning a draft into a new snapshot, and making it the live one.</div></div>
+      <div class="row"><div class="term">Rollback</div><div class="def">Switching back to an older snapshot, instantly, if something looks wrong.</div></div>
+      <div class="row"><div class="term">Adapter</div><div class="def">A small piece of code that connects the core system to one specific tool — like shadcn, or Prisma, or Lucid.</div></div>
+      <div class="row"><div class="term">Tier</div><div class="def">How much freedom an owner gets on one field — locked, guided, direct, or raw.</div></div>
+    </div>
+  </section>
+
+  <footer>brand-tokens · visual walkthrough</footer>
+</div>
+</body>
+</html>

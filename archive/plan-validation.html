@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Brand Token System — Plan Validation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg: #0D0F14;
+    --panel: #161922;
+    --panel-2: #1C202B;
+    --line: #2A2F3D;
+    --text: #EDEFF3;
+    --muted: #8B92A3;
+    --accent: #7C6CFF;
+    --accent-soft: #7C6CFF33;
+    --good: #5FBF8F;
+
+    --h1: 'Space Grotesk', sans-serif;
+    --body: 'Source Serif 4', serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; background: var(--bg); }
+  body{
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap{ max-width: 760px; margin: 0 auto; padding: 0 24px 90px; }
+
+  /* ---- hero ---- */
+  .hue-strip{
+    width: 100%;
+    height: 96px;
+    background: linear-gradient(90deg,
+      oklch(62% 0.19 280), oklch(66% 0.17 230), oklch(70% 0.15 190),
+      oklch(74% 0.16 150), oklch(78% 0.17 95), oklch(72% 0.19 55),
+      oklch(64% 0.22 20), oklch(58% 0.24 340), oklch(62% 0.19 280));
+    margin-bottom: 2px;
+  }
+  .hue-strip-labels{
+    display:flex; justify-content:space-between;
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    padding: 6px 24px 0; max-width: 760px; margin: 0 auto;
+  }
+
+  header.hero{ padding: 56px 0 40px; }
+  .kicker{ font-family: var(--mono); font-size: 13px; color: var(--accent); margin-bottom: 14px; }
+  h1{
+    font-family: var(--h1); font-weight: 600; font-size: 40px; line-height: 1.15;
+    margin: 0 0 16px; letter-spacing: -0.01em;
+  }
+  .subhead{ color: var(--muted); font-size: 18px; max-width: 60ch; margin: 0; }
+
+  hr.rule{ border: none; border-top: 1px solid var(--line); margin: 48px 0 40px; }
+
+  h2{
+    font-family: var(--h1); font-weight: 600; font-size: 24px;
+    margin: 0 0 20px; color: var(--text);
+  }
+  h2 .idx{ color: var(--muted); font-family: var(--mono); font-weight: 400; font-size: 15px; margin-right: 10px; }
+
+  p{ margin: 0 0 16px; }
+  .lede{ color: var(--muted); font-size: 16px; margin-bottom: 28px; }
+
+  /* ---- verdict ---- */
+  .verdict{
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--good);
+    background: var(--panel);
+    padding: 20px 24px;
+    margin-bottom: 28px;
+    font-family: var(--body);
+  }
+  .verdict b{ color: var(--good); font-family: var(--h1); font-weight: 600; }
+
+  ul.check{ list-style: none; margin: 0 0 28px; padding: 0; }
+  ul.check li{
+    position: relative; padding: 10px 0 10px 26px;
+    border-bottom: 1px solid var(--line);
+    font-size: 15.5px; color: var(--text);
+  }
+  ul.check li:last-child{ border-bottom: none; }
+  ul.check li::before{
+    content: "✓"; position: absolute; left: 0; top: 10px;
+    color: var(--good); font-family: var(--mono); font-size: 14px;
+  }
+  ul.check li .src{ display:block; color: var(--muted); font-family: var(--mono); font-size: 12px; margin-top: 4px; }
+
+  /* ---- stats ---- */
+  .stat-row{ display:flex; gap: 0; border: 1px solid var(--line); margin-bottom: 28px; }
+  .stat{ flex:1; padding: 22px 18px; border-right: 1px solid var(--line); }
+  .stat:last-child{ border-right: none; }
+  .stat .num{ font-family: var(--h1); font-weight: 700; font-size: 30px; color: var(--accent); display:block; line-height:1.1; }
+  .stat .lbl{ font-size: 13px; color: var(--muted); margin-top: 6px; display:block; }
+
+  /* ---- gap list ---- */
+  .gapgrid{ display:grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); margin-bottom: 8px; }
+  .gapgrid .cell{ background: var(--panel); padding: 16px 18px; }
+  .gapgrid .cell.head{ background: var(--panel-2); font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .gapgrid .cell p{ margin:0; font-size: 14.5px; }
+
+  /* ---- architecture diagram ---- */
+  .diagram{ border: 1px solid var(--line); padding: 28px 24px; margin-bottom: 12px; background: var(--panel); }
+  .layer{ margin-bottom: 0; }
+  .layer-label{ font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+  .box{
+    border: 1px solid var(--line); background: var(--panel-2);
+    padding: 14px 16px; font-family: var(--h1); font-size: 14.5px; font-weight: 500;
+  }
+  .box .sub{ font-family: var(--body); font-weight: 400; color: var(--muted); font-size: 13.5px; display:block; margin-top: 4px; }
+  .arrow-down{ text-align:center; color: var(--line); font-size: 20px; margin: 10px 0; font-family: var(--mono); }
+  .adapters-row{ display:flex; gap: 10px; }
+  .adapters-row .box{ flex:1; border-color: var(--accent-soft); }
+  .adapters-row .box.emph{ border-color: var(--accent); }
+
+  /* ---- tier diagram ---- */
+  .tier-line{ height:1px; background: var(--line); position:relative; margin: 6px 0 26px; }
+  .tier-line::after{
+    content:""; position:absolute; left:0; top:-1.5px; height:4px; width:100%;
+    background: linear-gradient(90deg, var(--muted), var(--accent));
+  }
+  .tiers{ display:flex; gap: 12px; margin-bottom: 8px; }
+  .tier{ flex:1; border: 1px solid var(--line); padding: 16px 14px; background: var(--panel); }
+  .tier .n{ font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .tier .t{ font-family: var(--h1); font-weight: 600; font-size: 15.5px; margin: 6px 0 8px; }
+  .tier .d{ font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .tier.emph{ border-color: var(--accent); }
+
+  .decisions{ margin-bottom: 4px; }
+  .decisions li{ margin-bottom: 14px; }
+  .decisions b{ color: var(--text); }
+
+  footer{ margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-family: var(--mono); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div style="background:#2A1F0E;border-bottom:2px solid #E0A030;padding:18px 24px;font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.7;color:#E8D9BC;">
+  <strong style="color:#E0A030;">ARCHIVED — do not build from this document.</strong><br>
+  Written to validate an earlier version of the plan; archived 2026-09-14.<br><br>
+  Its headline finding — that per-tenant isolation at scale is unaddressed — is closed by guideline §4 and §5.
+  The architecture diagram's &ldquo;open decision: per-tenant scope vs. per-tenant stylesheet&rdquo; is settled by §3.
+  Its market figures cite a vendor marketing blog whose page now returns 404, and the &ldquo;+42% retention&rdquo;
+  number describes white-label <em>marketing agency services</em>, not SaaS product retention.<br><br>
+  Current documents: <code>../docs/multi-tenant-theming-guideline.md</code> ·
+  <code>../DECISIONS.md</code> · <code>../plan/</code>
+</div>
+
+
+<div class="hue-strip"></div>
+<div class="hue-strip-labels"><span>oklch 280°</span><span>190°</span><span>95°</span><span>20°</span><span>340°</span></div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="kicker">plan validation · market read</div>
+    <h1>You control how much your tenants can brand themselves.</h1>
+    <p class="subhead">A read on the white-label branding npm package plan — shadcn + Tailwind adapters, tiered control the developer sets per tenant — checked against current white-label SaaS buying behavior.</p>
+  </header>
+
+  <section>
+    <div class="verdict">
+      <b>Verdict: the plan is sound and well-timed.</b> The market data supports the two ideas that matter most — tiered control as a real buying criterion, and framework-agnostic tokens with thin adapters as the right technical shape. One gap surfaced: the plan doesn't yet define how per-tenant theming stays isolated as tenant count scales past a few hundred.
+    </div>
+
+    <ul class="check">
+      <li>Depth of rebranding control is an explicit evaluation criterion for buyers — some platforms allow only a logo swap, others support full domain masking and custom dashboards.
+        <span class="src">source: cameldigital.co, 2026 white-label SaaS guide</span>
+      </li>
+      <li>Applying per-tenant branding without layout shift is named as one of three core technical problems in production white-label systems, alongside domain routing and outbound email.
+        <span class="src">source: viprasol.com, 2026</span>
+      </li>
+      <li>Enterprise buyers test for branding completeness everywhere — custom domain, no vendor logo in UI, error pages, emails, mobile views.
+        <span class="src">source: toucantoco.com, 2026</span>
+      </li>
+      <li>At scale, per-tenant theming has to be enforced through configuration, not one-off engineering per customer — this is the architectural gap to close before scaling tenants.
+        <span class="src">source: omni.co, 2026</span>
+      </li>
+    </ul>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Market signal</h2>
+    <p class="lede">White-label isn't a side feature request — it's a large, growing operating model with a measurable retention effect.</p>
+
+    <div class="stat-row">
+      <div class="stat"><span class="num">$278B</span><span class="lbl">projected 2026 white-label SaaS market</span></div>
+      <div class="stat"><span class="num">16.2%</span><span class="lbl">CAGR, 2023–2026</span></div>
+      <div class="stat"><span class="num">+42%</span><span class="lbl">client retention vs. non-white-label</span></div>
+    </div>
+    <p style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:-14px;">source: aonmeetings.com, 2026 market report</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>What existing packages don't do</h2>
+    <p class="lede">Checked the closest prior art on npm — none combine framework-agnostic tokens with a tiered ownership model.</p>
+    <div class="gapgrid">
+      <div class="cell head">package pattern found</div>
+      <div class="cell head">what's missing</div>
+      <div class="cell"><p>Flat token export (mx-design-tokens, @talend/design-tokens)</p></div>
+      <div class="cell"><p>No adapters — one output shape, not framework-agnostic</p></div>
+      <div class="cell"><p>Framework-bundled tokens (@forgeframework/design-tokens)</p></div>
+      <div class="cell"><p>Tokens locked to one component library, can't retarget</p></div>
+      <div class="cell"><p>Visual theme editors for shadcn</p></div>
+      <div class="cell"><p>Design-time tool for one developer, not a runtime tenant-control model</p></div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Architecture, as validated</h2>
+    <div class="diagram">
+      <div class="layer">
+        <div class="layer-label">core — framework agnostic</div>
+        <div class="box">brand-tokens<span class="sub">one hex in → OKLCH scale + APCA-checked semantic roles out</span></div>
+      </div>
+      <div class="arrow-down">↓</div>
+      <div class="layer">
+        <div class="layer-label">adapters — thin, swappable</div>
+        <div class="adapters-row">
+          <div class="box emph">shadcn<span class="sub">CSS var names</span></div>
+          <div class="box">tailwind<span class="sub">config theme</span></div>
+          <div class="box">css<span class="sub">raw custom props</span></div>
+        </div>
+      </div>
+      <div class="arrow-down">↓</div>
+      <div class="layer">
+        <div class="layer-label">runtime — per tenant</div>
+        <div class="box">scoped variable injection<span class="sub">open decision: per-tenant scope vs. per-tenant stylesheet</span></div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Control tiers, as the buying criterion</h2>
+    <p class="lede">This directly maps to how buyers actually evaluate white-label depth.</p>
+    <div class="tier-line"></div>
+    <div class="tiers">
+      <div class="tier">
+        <div class="n">01</div>
+        <div class="t">Locked</div>
+        <div class="d">Owner sees the result. Value is fixed by the developer.</div>
+      </div>
+      <div class="tier">
+        <div class="n">02</div>
+        <div class="t">Guided</div>
+        <div class="d">A few high-level sliders — tint, intensity, contrast — map to many tokens.</div>
+      </div>
+      <div class="tier">
+        <div class="n">03</div>
+        <div class="t">Direct</div>
+        <div class="d">Per-role color pickers, still APCA-validated.</div>
+      </div>
+      <div class="tier emph">
+        <div class="n">04</div>
+        <div class="t">Raw</div>
+        <div class="d">Full token access. No guardrails — expert / agency tier.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Before writing the adapters</h2>
+    <ul class="decisions" style="padding-left:20px;">
+      <li><b>Tenant isolation strategy</b> — scoped CSS custom properties per tenant, or per-tenant stylesheet injection. Changes adapter output shape, decide first.</li>
+      <li><b>Runtime vs. build-time generation</b> — Forge's multi-tenant snapshot model suggests runtime CSS variables as the default.</li>
+      <li><b>Validation boundary</b> — APCA contrast enforced through Direct tier; Raw tier is explicitly unguarded.</li>
+    </ul>
+  </section>
+
+  <footer>brand-tokens · plan validation · compiled from current white-label SaaS market research</footer>
+
+</div>
+</body>
+</html>
