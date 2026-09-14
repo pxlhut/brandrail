@@ -30,3 +30,20 @@ export type { ButtonStyle } from './features/shape/index.js';
 
 export { validateTokenValue, escapeForHtml, MAX_VALUE_BYTES } from './features/validation/index.js';
 export type { TokenValueType, ValidationResult } from './features/validation/index.js';
+
+export {
+  toShadcnCss,
+  toTailwindTheme,
+  toCssVars,
+  SHADCN_PINNED_VARS,
+  COLOR_ROLE_ORDER,
+  CHART_ROLE_ORDER,
+  EXTRA_COLOR_ROLES,
+} from './features/output/index.js';
+export type {
+  ShadcnOpts,
+  TailwindOpts,
+  CssVarOpts,
+  DarkModeStrategy,
+  FontStrategy,
+} from './features/output/index.js';

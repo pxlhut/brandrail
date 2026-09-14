@@ -9,7 +9,7 @@ Scope name: **`@pxlhut`** (D2)
 - [x] 05 core semantic + shape — 2026-09-14
 - [x] 06 core generateTheme — 2026-09-14
 - [x] 07 core validator — 2026-09-14
-- [ ] 08 core serializers
+- [x] 08 core serializers — 2026-09-14
 - [ ] 09 core proofs
 - [ ] 10 store contract
 - [ ] 11 store conformance
@@ -230,3 +230,71 @@ assumed otherwise needs to know.
   every accepted character) — and the length check runs *before* the
   non-ASCII scan specifically so a huge multi-byte string is bounded by
   `.length` before anything walks it character-by-character.
+
+**Step 08.**
+
+- **Verified shadcn/ui's variable set against the live docs, not from
+  memory** — fetched `ui.shadcn.com`'s manual-installation guide directly
+  (2026-09-14). First pass at fetching the theming overview page's summary
+  claimed `--destructive-foreground` doesn't exist in current shadcn; the raw
+  installation-guide source (and the actual `button.tsx` in shadcn's repo,
+  checked independently) showed that summary was wrong — it *does* exist.
+  Pinned list is transcribed a second time, independently, directly into
+  `roles.test.ts` (not derived from `roles.ts`) so the test can't pass by
+  construction.
+- **`ButtonStyle` is redeclared in `features/output`, not imported from
+  `features/shape`.** `.dependency-cruiser.cjs`'s `layer('output',
+  ['validation'])` forbids `output` from importing any other feature, even
+  for a type-only import (`tsPreCompilationDeps: true` tracks those too). The
+  two declarations are structurally identical (`'solid' | 'outline'`); a
+  caller holding a real `ButtonStyle` value from `generateTheme()`'s result
+  passes it straight through, since TypeScript matches on shape, not origin.
+- **`success`/`warning`/`info` (+ foregrounds) are emitted alongside shadcn's
+  pinned set, not counted as part of it.** `SHADCN_PINNED_VARS` (used by the
+  "every pinned variable is present" test) is `COLOR_ROLE_ORDER` minus
+  `EXTRA_COLOR_ROLES`; `toShadcnCss` itself still emits all of them. Per
+  guideline §34 these are first-class in this package's own model even
+  though shadcn doesn't define them.
+- **Shape and typography tokens are declared once, in the light/root block
+  only — never repeated in the dark block.** They aren't per-mode (§32), and
+  CSS custom properties cascade normally, so the dark selector inherits them
+  for free. This is a real, if narrow, limitation: a raw override that
+  deliberately differentiated e.g. `borderWidth` by mode (legal per the
+  `TokenValue` type, though nothing in the generator ever produces it) would
+  have its dark-mode half silently unused by `toShadcnCss`/`toCssVars`/
+  `toTailwindTheme`. Not solved here — no guideline text suggests shape or
+  typography varies by mode, and solving it would mean repeating four to six
+  extra properties in every dark block for a case nothing currently produces.
+- **`toTailwindTheme`'s v3 output ignores the tree's actual values by
+  design.** It maps every role to a bare `var(--role)` reference and is
+  therefore identical for every tree — a `tailwind.config.js` is a
+  build-time file, so the only way one static config serves every tenant is
+  for it to defer to whichever CSS custom properties are inlined at request
+  time (§3), never to bake a value in. Asserted directly: two trees with
+  different colours produce byte-identical v3 output.
+- **`fontStrategy: 'inline-face'` emits `@font-face` with a `local()` source
+  only — it does not embed font binaries.** Real embedding needs a
+  font-asset pipeline (fetching, storing, and serving font files) that
+  doesn't exist anywhere in this repo and isn't a D10 package. `local()` is
+  honest about what it actually does (prefer an already-installed copy) and
+  fabricates nothing. Documented in the package README, not left implied.
+- **`fontStrategy: 'fontsource'` emits a comment, not an `@import`.**
+  `@fontsource/*` packages ship static files meant to be pulled in by the
+  consumer's own bundler (`import '@fontsource/inter'`); there's no public
+  CDN URL to `@import` that this package could respectably invent. The
+  package name is derived from the curated font id, not a separate table —
+  `shared/fields/registry.ts`'s ids (`inter`, `space-grotesk`, …) already
+  match `@fontsource`'s real package names by construction.
+- **A hand-built `TokenTree` fixture (`features/output/fixture.ts`),
+  matching `theme/merge.test.ts`'s established pattern**, rather than a real
+  `generateTheme()` call — `layer('output', ['validation'])` doesn't let this
+  feature import `theme` even from a test file (the layering rules match on
+  path, not on `.test.ts`). Centralised in one non-test file rather than
+  duplicated per test file: the fixture is 33 colour roles wide, and
+  triplicating that by hand across three test files was a correctness risk
+  merge.test.ts's much smaller single-role fixture didn't have. Values are
+  real `toCss(finalize(...))` output copied from an actual run, so the
+  ~4 KB size acceptance check measures realistic bytes.
+- A typical generated tree serialises to roughly 2.8 KB unminified via
+  `toShadcnCss` — comfortable headroom under the ~4 KB ceiling even before
+  `minify`.
