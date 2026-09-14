@@ -11,21 +11,17 @@
  * family name.
  */
 
-import { FONT_OPTIONS } from '../../shared/fields/index.js';
+import { FONT_OPTIONS, FONT_STACKS } from '../../shared/fields/index.js';
 import type { TypographyTokens } from '../../shared/types/index.js';
 
 /**
+ * Re-exported from `shared/fields` — that's the single source of truth, since
+ * step 07's validator needs the same curated set and can't import a feature.
  * Keyed by the `value` of each entry in `FONT_OPTIONS`. A test asserts the two
  * stay in step: adding a curated option without a stack here would reintroduce
  * exactly the silent-fallback failure §35 exists to prevent.
  */
-export const FONT_STACKS: Record<string, string> = {
-  inter: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-  'space-grotesk': "'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif",
-  'ibm-plex-sans': "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
-  'source-serif-4': "'Source Serif 4', Georgia, 'Times New Roman', serif",
-  'jetbrains-mono': "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-};
+export { FONT_STACKS };
 
 export const DEFAULT_HEADING_FONT = 'inter';
 export const DEFAULT_BODY_FONT = 'inter';

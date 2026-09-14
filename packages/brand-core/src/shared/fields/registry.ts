@@ -26,6 +26,24 @@ export const FONT_OPTIONS: readonly SelectOption[] = [
   { label: 'JetBrains Mono', value: 'jetbrains-mono' },
 ] as const;
 
+/**
+ * Full CSS stacks for each curated font id, never a bare family name (§35).
+ *
+ * Lives here rather than in `features/typography` because step 07's validator
+ * needs the same curated set — to reject a raw-tier font override that names
+ * a real font but isn't one of these exact stacks — and dependency-cruiser's
+ * layering forbids `features/validation` from importing another feature.
+ * `features/typography/stacks.ts` re-exports this rather than defining its
+ * own copy, so there is exactly one curated list, not two that can drift.
+ */
+export const FONT_STACKS: Record<string, string> = {
+  inter: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+  'space-grotesk': "'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  'ibm-plex-sans': "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  'source-serif-4': "'Source Serif 4', Georgia, 'Times New Roman', serif",
+  'jetbrains-mono': "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+};
+
 /** §32's three presets. Direct tier may supply any valid length instead. */
 export const RADIUS_OPTIONS: readonly SelectOption[] = [
   { label: 'Sharp', value: '0.125rem' },

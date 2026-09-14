@@ -8,7 +8,7 @@ Scope name: **`@pxlhut`** (D2)
 - [x] 04 core colour engine — 2026-09-14
 - [x] 05 core semantic + shape — 2026-09-14
 - [x] 06 core generateTheme — 2026-09-14
-- [ ] 07 core validator
+- [x] 07 core validator — 2026-09-14
 - [ ] 08 core serializers
 - [ ] 09 core proofs
 - [ ] 10 store contract
@@ -175,3 +175,58 @@ assumed otherwise needs to know.
 - Root scripts added beyond the step's list: `pnpm arch` (dependency-cruiser),
   `pnpm purity` (post-build bundle check), and `pnpm verify` which chains the
   whole pipeline in CI order.
+
+**Step 07.**
+
+- **`FONT_STACKS` moved from `features/typography` to `shared/fields`.**
+  `features/validation` needs the exact curated stacks to validate a raw-tier
+  font override by enum membership (§35), but `layer('validation', [])` in
+  `.dependency-cruiser.cjs` forbids it importing any other feature. Moving the
+  data to `shared/fields` (which any feature may import) gives both features
+  one source of truth instead of two curated lists that could drift.
+  `features/typography/stacks.ts` now re-exports it; its own tests and public
+  API are unchanged.
+- **Font-stack validation checks the exact curated CSS stack, not a bare font
+  id.** A raw override reaches `typography.headingFont`/`bodyFont` directly
+  (`mergeLayer` assigns the raw string as the final `TokenValue`, no id → stack
+  translation happens for raw). So the enum validated against has to be
+  `Object.values(FONT_STACKS)` — the actual stored token values — not the ids
+  in `FONT_OPTIONS`. A bare name like `"Inter"` is rejected even though it
+  names a real curated font, which is the point: enum membership, not string
+  inspection.
+- **Colour validation reuses `finalize()`/`toCss()` from `shared/color-math`**
+  rather than calling culori directly. D3's gamut rule says *every* colour
+  this package produces goes through `finalize()`, "no exceptions" — but a
+  raw-tier override is a colour that reaches the token tree without ever
+  passing through the generator, so without this it would have been a silent
+  exception to D3. This also fixes float-noise output (`culori`'s raw
+  `formatCss` emits doubles like `1.0000000000000002`); `finalize()` already
+  rounds. Still only one runtime dependency transitively (`culori`, via
+  `shared/color-math`, which itself depends on nothing else) — consistent
+  with the acceptance criterion.
+- **`number` validation needs an explicit `Number.isFinite` check, not just
+  the regex.** A string of ~400+ digits matches `/^-?\d+(\.\d+)?$/` (it's
+  all digits) but overflows to `Infinity` when converted — the regex alone
+  does not guarantee finiteness. Caught by a test before it shipped; the
+  512-byte cap doesn't save you here because 400 digits is well under it.
+- **The independence of the two validation layers (hard-reject vs. type
+  parse) has no naturally-occurring example in the hostile corpus.** Every
+  hostile string in §19's list already fails the type-level parse on its own
+  (culori's `oklch()` and the anchored length/number regexes are all strict
+  enough to reject every one of them independently — verified directly).
+  The one genuine, non-contrived case where a value passes a type's grammar
+  and is only caught by the hard-reject layer is the length cap: a 600+ digit
+  numeral with a `px` suffix matches the length regex exactly, and is only
+  rejected for being oversized. `validate.test.ts` proves this by calling
+  `validateLength()` alone (accepts) against `validateTokenValue()` (rejects).
+- **Non-ASCII allowlist is empty.** None of the five `TokenValueType`s have a
+  legitimate use for a non-ASCII character — colour/length/number/duration are
+  ASCII-only by grammar, and font-stack is enum membership, not string
+  inspection. Widening this later should be a deliberate, per-type decision,
+  not a default left open "just in case."
+- The 512-byte cap is checked via JS string `.length`, not a true UTF-8 byte
+  count. This is exact for every value this validator can ever accept, because
+  non-ASCII is rejected outright (one UTF-16 code unit is one UTF-8 byte for
+  every accepted character) — and the length check runs *before* the
+  non-ASCII scan specifically so a huge multi-byte string is bounded by
+  `.length` before anything walks it character-by-character.

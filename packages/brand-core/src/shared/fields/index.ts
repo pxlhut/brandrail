@@ -6,6 +6,7 @@ export {
   defaultControlConfig,
   applyProfile,
   FONT_OPTIONS,
+  FONT_STACKS,
   RADIUS_OPTIONS,
   DENSITY_OPTIONS,
   NEUTRAL_TONE_OPTIONS,

@@ -27,3 +27,6 @@ export type { ContrastTarget } from './features/contrast/index.js';
 export { SEMANTIC_HUES, collidesWithInfo } from './features/semantics/index.js';
 export { FONT_STACKS, stackFor } from './features/typography/index.js';
 export type { ButtonStyle } from './features/shape/index.js';
+
+export { validateTokenValue, escapeForHtml, MAX_VALUE_BYTES } from './features/validation/index.js';
+export type { TokenValueType, ValidationResult } from './features/validation/index.js';
