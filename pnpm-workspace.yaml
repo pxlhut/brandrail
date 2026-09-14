@@ -1,0 +1,7 @@
+packages:
+  - 'packages/*'
+
+# pnpm 12 requires explicit approval for dependency build scripts.
+# esbuild is tsup's bundler; it needs its postinstall to place the binary.
+allowBuilds:
+  esbuild: true

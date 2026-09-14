@@ -1,0 +1,41 @@
+{
+  "name": "@pxlhut/brand-core",
+  "version": "0.0.0",
+  "description": "Generate a complete, gamut-mapped, APCA-validated design token tree from one brand colour. Pure, browser-safe, framework-agnostic.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "apca-w3": "^0.1.9",
+    "culori": "^4.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/culori": "^4.0.1"
+  }
+}

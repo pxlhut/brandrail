@@ -1,0 +1,29 @@
+{
+  "name": "brand-tokens-monorepo",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.0.0",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "vitest run",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "arch": "depcruise packages --config .dependency-cruiser.cjs",
+    "purity": "node scripts/check-core-purity.mjs",
+    "verify": "pnpm typecheck && pnpm lint && pnpm arch && pnpm test && pnpm build && pnpm purity",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.7",
+    "@eslint/js": "^9.38.0",
+    "dependency-cruiser": "^17.0.1",
+    "eslint": "^9.38.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
+    "vitest": "^3.2.4"
+  }
+}

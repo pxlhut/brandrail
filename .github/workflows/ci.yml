@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      # Feature boundaries and the brand-core layering graph (DECISIONS.md).
+      - name: Architecture rules
+        run: pnpm arch
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      # brand-core must stay browser-safe and must not grow a third
+      # runtime dependency without a recorded decision. Runs after build
+      # because it inspects the emitted bundle, not just the source.
+      - name: Core purity
+        run: pnpm purity
+
+      # The store-adapter conformance matrix lands here in step 11.

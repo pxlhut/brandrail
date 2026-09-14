@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // No @types/node. `process`, `fs` and friends must not typecheck here —
+    // brand-core runs in a browser (guideline §3) and must stay pure (§39).
+    "types": [],
+    "lib": ["ES2022"],
+    "noEmit": true
+  },
+  "include": ["src", "fixtures", "proofs"]
+}

@@ -1,0 +1,39 @@
+{
+  "name": "@pxlhut/brand-store",
+  "version": "0.0.0",
+  "description": "The persistence contract for brand themes: draft, publish, immutable snapshot, rollback. Zero database dependency — bring your own.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+      "require": { "types": "./dist/index.d.cts", "default": "./dist/index.cjs" }
+    },
+    "./conformance": {
+      "import": { "types": "./dist/conformance.d.ts", "default": "./dist/conformance.js" },
+      "require": { "types": "./dist/conformance.d.cts", "default": "./dist/conformance.cjs" }
+    },
+    "./memory": {
+      "import": { "types": "./dist/memory.d.ts", "default": "./dist/memory.js" },
+      "require": { "types": "./dist/memory.d.cts", "default": "./dist/memory.cjs" }
+    },
+    "./service": {
+      "import": { "types": "./dist/service.d.ts", "default": "./dist/service.js" },
+      "require": { "types": "./dist/service.d.cts", "default": "./dist/service.cjs" }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pxlhut/brand-core": "workspace:*"
+  },
+  "publishConfig": { "access": "public" }
+}
