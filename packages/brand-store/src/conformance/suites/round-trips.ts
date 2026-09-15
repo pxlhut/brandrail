@@ -56,6 +56,42 @@ export function registerRoundTripSuite(ctx: SuiteContext): void {
       expect(list.map((s) => s.version), `[${ctx.name}] listSnapshots order`).toEqual([1, 2, 3]);
     });
 
+    it('shallow-merges fieldValues/rawOverrides/passthrough — a patch touching one field must not erase another (rule 4)', async () => {
+      const store = ctx.getStore();
+      const siteId = freshSiteId();
+
+      const first = await store.saveConfig(
+        siteId,
+        {
+          ...sampleConfigPatch('#7C6CFF'),
+          fieldValues: { radius: '0.5rem' },
+          rawOverrides: { 'color.destructive': 'oklch(0.5 0.2 27)' },
+          passthrough: { companyName: 'Acme' },
+        },
+        0,
+      );
+
+      const second = await store.saveConfig(
+        siteId,
+        { fieldValues: { headingFont: 'space-grotesk' } },
+        first.version,
+      );
+
+      expect(
+        second.fieldValues.radius,
+        `[${ctx.name}] rule 4: a patch to fieldValues.headingFont must not erase fieldValues.radius`,
+      ).toBe('0.5rem');
+      expect(second.fieldValues.headingFont).toBe('space-grotesk');
+      expect(
+        second.rawOverrides['color.destructive'],
+        `[${ctx.name}] rule 4: an unrelated patch must not erase existing rawOverrides`,
+      ).toBe('oklch(0.5 0.2 27)');
+      expect(
+        second.passthrough.companyName,
+        `[${ctx.name}] rule 4: an unrelated patch must not erase existing passthrough`,
+      ).toBe('Acme');
+    });
+
     it('creates and reads back a preview', async () => {
       const store = ctx.getStore();
       const siteId = freshSiteId();

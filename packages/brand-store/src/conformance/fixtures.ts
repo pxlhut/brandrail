@@ -30,6 +30,7 @@ export function sampleConfigPatch(brandColor = '#7C6CFF'): Partial<BrandConfig> 
   return {
     brandColor,
     controlConfig: defaultControlConfig(),
+    fieldValues: {},
     rawOverrides: {},
     passthrough: {},
     schemaVersion: 1,

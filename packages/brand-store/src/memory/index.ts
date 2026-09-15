@@ -127,8 +127,12 @@ export class MemoryBrandThemeStore extends BaseBrandThemeStore {
         siteId,
         brandColor: patch.brandColor ?? current?.brandColor ?? '#000000',
         controlConfig: patch.controlConfig ?? current?.controlConfig ?? defaultControlConfig(),
-        rawOverrides: patch.rawOverrides ?? current?.rawOverrides ?? {},
-        passthrough: patch.passthrough ?? current?.passthrough ?? {},
+        // Shallow-merged, not replaced: each bag holds many independent
+        // fields' values, and a patch touching one must not erase another
+        // (rules.md, rule 4's note).
+        fieldValues: { ...current?.fieldValues, ...patch.fieldValues },
+        rawOverrides: { ...current?.rawOverrides, ...patch.rawOverrides },
+        passthrough: { ...current?.passthrough, ...patch.passthrough },
         schemaVersion: patch.schemaVersion ?? current?.schemaVersion ?? 1,
         version: currentVersion + 1,
         updatedAt: this.now().toISOString(),

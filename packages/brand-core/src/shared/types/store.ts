@@ -7,7 +7,7 @@
  * (previews). D1 (`siteId`), D7 (two hashes), D8 (`sourceConfigVersion`).
  */
 
-import type { ControlConfig } from './control.js';
+import type { ControlConfig, FieldId } from './control.js';
 import type { TokenTree } from './tokens.js';
 
 /**
@@ -22,7 +22,26 @@ export interface BrandConfig {
   brandColor: string;
   /** This site's own config, copied from a profile at provisioning (§17). */
   controlConfig: ControlConfig;
-  /** Only populated where a field's tier is `raw`. Still validated (§19). */
+  /**
+   * The current value of every field that maps to a single scalar generator
+   * input — `headingFont`, `bodyFont`, `radius`, `density`, `neutralTone`,
+   * `buttonStyle`, `elevation` (as a string, e.g. `'72'`) — keyed by
+   * `FieldId`, regardless of whether the field's current tier is `locked`
+   * or `guided` or `direct`. A locked field with no owner-set value falls
+   * back to its `controlConfig` entry's own `value`; `brandColor` has its
+   * own top-level slot above instead, being "the one true input"; raw-tier
+   * and passthrough fields use `rawOverrides`/`passthrough` instead, since
+   * their values aren't single scalars.
+   */
+  fieldValues: Partial<Record<FieldId, string>>;
+  /**
+   * Token-path-keyed overrides (e.g. `"color.primary"`, `"shape.radius"`) —
+   * still validated regardless (§19) — for any field whose value is not a
+   * single scalar: `advancedTokens`, always (that's its whole purpose), and
+   * `semanticColors` whenever its tier is `direct` or `raw` rather than
+   * `locked` (overriding "what colour is error" is inherently a set of
+   * colour-role overrides, not one value).
+   */
   rawOverrides: Record<string, string>;
   /** Fields that never reach `generateTheme()` — logo URL, company name (§36). */
   passthrough: Record<string, string>;

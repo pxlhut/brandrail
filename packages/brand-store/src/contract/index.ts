@@ -83,6 +83,14 @@ export interface BrandThemeStore {
    * `0` is never a real config's version (versions start at 1, same as
    * `Snapshot.version` — rule 2), so it can't collide with an actual stale
    * read the way e.g. `undefined` could.
+   *
+   * `patch.fieldValues`, `patch.rawOverrides` and `patch.passthrough` are
+   * each **shallow-merged** into the config's current bag, never replaced
+   * wholesale — a patch that only sets `fieldValues.radius` must not erase
+   * a previously-saved `fieldValues.headingFont`. Everything else on
+   * `patch` (`brandColor`, `controlConfig`, `schemaVersion`) replaces the
+   * current value outright, the ordinary meaning of a partial update on a
+   * scalar field.
    */
   saveConfig(
     siteId: string,

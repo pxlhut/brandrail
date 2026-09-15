@@ -20,6 +20,10 @@ export type {
   Violation,
   Adjustment,
 } from './features/theme/index.js';
+// `GenerateInput.neutralTone`'s own type — omitted before only because
+// nothing outside core needed to name it explicitly until now (step 13
+// needs it to build a `GenerateInput` from a saved `BrandConfig`).
+export type { NeutralTone } from './features/palette/index.js';
 
 export { CONTRAST_TARGETS, contrastLc, absLc } from './features/contrast/index.js';
 export type { ContrastTarget } from './features/contrast/index.js';

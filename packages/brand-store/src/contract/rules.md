@@ -54,6 +54,13 @@ existence, by passing `expectedVersion: 0` ("no config exists yet"). `0`
 can never be a real config's version, so it can't collide with an actual
 stale read.
 
+**`fieldValues`, `rawOverrides` and `passthrough` are shallow-merged, not
+replaced wholesale.** Each holds many independent fields' values in one
+bag; a patch that sets `fieldValues.radius` must leave a previously-saved
+`fieldValues.headingFont` untouched. An adapter that replaces the whole
+bag on any partial update silently erases every other field the owner has
+ever set, the first time they touch a second one.
+
 ## 5. `getActiveSnapshot` returns `null` for an unknown site — never throws
 
 Guideline §20 makes "a provisioned site with no snapshot at all" impossible

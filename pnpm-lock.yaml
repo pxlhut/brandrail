@@ -173,6 +173,10 @@ importers:
       '@pxlhut/brand-core':
         specifier: workspace:*
         version: link:../brand-core
+    devDependencies:
+      '@types/node':
+        specifier: ^26.5.1
+        version: 26.5.1
 
   packages/brand-store-lucid:
     dependencies:

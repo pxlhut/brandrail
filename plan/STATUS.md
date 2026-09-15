@@ -14,7 +14,7 @@ Scope name: **`@pxlhut`** (D2)
 - [x] 10 store contract — 2026-09-15
 - [x] 11 store conformance — 2026-09-15
 - [x] 12 store memory — 2026-09-15
-- [ ] 13 service layer
+- [x] 13 service layer — 2026-09-15
 - [ ] 14 store lucid
 - [ ] 15 ssr delivery
 - [ ] 16 editor headless
@@ -553,3 +553,108 @@ assumed otherwise needs to know.
 - 233 lines, under the ~250 budget; only dependency is `@pxlhut/brand-core`
   (`defaultControlConfig` for a first `saveConfig`'s fallback shape) plus
   the sibling `contract/` module.
+
+**Step 13.**
+
+- **`BrandConfig` was missing a place to persist most fields' current
+  values — a real gap in the already-shipped step 03 type, found while
+  designing `saveDraft`, not a design choice of this step's own.** It had
+  `brandColor` (its own slot) and `rawOverrides`/`passthrough` (scoped,
+  per their doc comments, to raw-tier and passthrough fields only) — but
+  nothing for a `guided`/`direct`-tier scalar like `headingFont` or
+  `radius`. `BrandConfig.updatedAt`'s own doc comment ("a slider drag
+  writes here constantly") only makes sense if there's somewhere for a
+  slider's value to land. Added `fieldValues: Partial<Record<FieldId,
+  string>>` to `BrandConfig` (`shared/types/store.ts`) for exactly the
+  seven fields that map to a `GenerateInput` scalar
+  (`headingFont`/`bodyFont`/`radius`/`density`/`neutralTone`/
+  `buttonStyle`/`elevation`), regardless of their current tier. Updated
+  every existing `BrandConfig` construction site: `conformance/fixtures.ts`,
+  `conformance/fixture-store.ts` (step 11, test-only), `memory/index.ts`
+  (step 12).
+- **`semanticColors` (`direct`/`raw`) and `advancedTokens` (always `raw`)
+  both land in `rawOverrides`, keyed by token path** (`"color.primary"`,
+  `"shape.radius"`) — neither has a single scalar value, so neither fits
+  `fieldValues`. New file `authoring/token-paths.ts` is the one place that
+  decides this path format, since nothing upstream (`TokenTree` is nested,
+  `rawOverrides` is flat) defines it; both `authoring` (validating a
+  submitted path) and `publishing` (turning saved paths back into a
+  `PartialTokenTree`) import from it.
+- **Found and fixed a real, silent data-loss bug while extending
+  `BrandConfig`**: `saveConfig`'s existing implementations (the step 11
+  fixture store *and* the step 12 memory adapter) replaced
+  `rawOverrides`/`passthrough` wholesale on any patch that touched them —
+  `{ rawOverrides: { 'color.primary': 'x' } }` would have silently erased
+  every *other* raw override the site had ever saved, the first time a
+  second one was added. Not caught before because no existing test ever
+  patched a bag-shaped field twice with different keys. Fixed to
+  shallow-merge in both places; documented as an explicit rule in
+  `contract/index.ts`'s `saveConfig` doc comment and `rules.md` (under rule
+  4, since it's the same "don't clobber a concurrent/unrelated edit"
+  concern); added a conformance-suite test (`round-trips.ts`) so every
+  *future* adapter — not just this session's two — gets it right too.
+- **`GenerateInput.neutralTone`'s own type, `NeutralTone`, was never
+  re-exported from `@pxlhut/brand-core`'s root** — a one-line omission from
+  step 04/06 (nothing outside core needed to name it explicitly until this
+  step needed to build a `GenerateInput` from a saved `BrandConfig`). Added
+  the export; no behaviour changed, purely additive.
+- **Guided and direct-tier values for the seven scalar-mapped fields flow
+  into the *same* `GenerateInput` field regardless of tier** — confirmed by
+  re-reading `GenerateInput.radius`'s own doc comment ("a §32 preset … or
+  any valid length at Direct tier"). The tier only ever gated which values
+  were *accepted* at save time; by publish time a value in `fieldValues`
+  has already been validated once, so `toGenerateInput` doesn't re-check it
+  or re-branch on tier at all — simpler than the layered
+  `overrides.guided`/`overrides.direct` split the type system technically
+  allows, and, on inspection, that split turned out to have no actual user
+  among the fourteen current fields: every guided-tier field already has a
+  dedicated `GenerateInput` scalar, so `overrides.guided` is unused by this
+  service (left in place in core for a future field that might need it).
+- **Every `rawOverrides` entry becomes an `overrides.raw` entry, never
+  `overrides.direct`** — even for a `direct`-tier `semanticColors`
+  submission. `BrandConfig.rawOverrides` doesn't record which tier
+  contributed each path, only the adapter's *current* `controlConfig` does,
+  and re-deriving that distinction at publish time (to place a `direct`
+  value in `overrides.direct` instead) only matters when `semanticColors`
+  and `advancedTokens` touch the *same* colour role at the *same* time — a
+  real but narrow edge case, and both layers already reject the same
+  contrast failures at the same point (`generateTheme`'s post-merge
+  `findViolations`, unconditionally). Simplified deliberately rather than
+  threading tier provenance through `rawOverrides` for a precedence
+  question with no test in this step's own acceptance list.
+- **`provisionSite` cannot be "the same transaction" in the literal sense
+  §20 asks for.** `BrandThemeStore.saveConfig` and `.publish` are two
+  separate contract methods (step 10), and the contract exposes no
+  primitive spanning both — so the closest this step can get is calling
+  them sequentially, with nothing else running in between. Said so
+  directly in the code's own doc comment rather than implying a stronger
+  guarantee than what's actually provided; a real cross-call transaction
+  would need a contract change, out of scope here.
+- **`saveDraft`'s and `provisionSite`'s parameter shapes deviate slightly
+  from the step file's literal `saveDraft(siteId, patch, ctx)` /
+  `provisionSite(siteId, profileId, ctx)` signatures, on purpose:**
+  `DraftPatch` carries `expectedVersion` as a field on the patch object
+  itself (§22's optimistic concurrency needs the caller's last-seen
+  version, which isn't `ctx` — a role/dependency bag — or invented
+  server-side, which would defeat the concurrency check entirely). And
+  `provisionSite`'s second parameter is a concrete `{ brandColor, profile?:
+  ControlProfile }`, not a `profileId` string — there is no profile
+  *registry* anywhere in this codebase for an id to resolve against; a
+  named-profile lookup is a platform-level concern above this service, and
+  `ControlProfile` is already the real, typed shape `applyProfile` expects.
+- **Rate limiters, the idempotency store and the invalidation emitter are
+  all injected with in-memory/no-op defaults**, per-process — every one of
+  them says so in its own doc comment. A real multi-process deployment
+  needs a shared backend (Redis, Postgres `LISTEN`/`NOTIFY`, a queue) for
+  each; this step's job was the interface and a correct single-process
+  reference, not a production rate-limit backend.
+- Hashes: `checksum` (dedupe) is hex; `cssSha256` (the CSP header, D7) is
+  base64 — deliberately different encodings, because `cssSha256` is
+  formatted exactly as `style-src 'sha256-<this>'` expects it, with no
+  re-encoding step at the point of emitting the header, while `checksum`
+  never leaves this process and hex is simply easier to eyeball in logs.
+- Added `@types/node` to `brand-store` (first real use of `node:crypto` —
+  `node:fs`/`node:path`/`node:url` in step 11's tests were already covered,
+  but only as a devDependency there; this is the first *runtime* Node
+  built-in). No purity concern the way it would be in `brand-core`: this
+  package has never claimed to run in a browser.
