@@ -16,6 +16,7 @@ import {
   type RateLimiter,
 } from '../limits/index.js';
 import { noopInvalidationEmitter, type InvalidationEmitter } from '../events/index.js';
+import { noopMetricsEmitter, type MetricsEmitter } from '../metrics/index.js';
 import { hashCssText, hashTokens } from './hash.js';
 import { toGenerateInput } from './to-generate-input.js';
 
@@ -70,6 +71,8 @@ export interface PublishContext extends AccessContext {
   idempotency?: IdempotencyStore;
   /** @default no-op (§8) */
   emit?: InvalidationEmitter;
+  /** @default no-op (§26) — see `metrics/index.ts` for which events this function emits. */
+  metrics?: MetricsEmitter;
   publishedBy?: string;
 }
 
@@ -100,21 +103,34 @@ export type PublishResult = { ok: true; snapshot: Snapshot } | { ok: false; viol
  * 10. Emit the invalidation event **after** commit, never before: emitting
  *     first risks a consumer invalidating against a publish that then
  *     fails or rolls back.
+ *
+ * `ctx.metrics` (§26, `metrics/index.ts`) observes this pipeline throughout
+ * — rate-limit hits, contrast rejections, store errors and publish latency
+ * — but never changes control flow; every emit call sits next to the
+ * decision it reports, not in place of it.
  */
 export async function publishTheme(
   siteId: string,
   ctx: PublishContext,
   opts: PublishOptions = {},
 ): Promise<PublishResult> {
+  const emitMetric = ctx.metrics ?? noopMetricsEmitter;
+
   await requireWriteAccess(siteId, ctx);
 
   const siteLimiter = ctx.siteRateLimiter ?? defaultPublishSiteRateLimiter();
   if (!(await siteLimiter.consume(`publish:site:${siteId}`))) {
+    await emitMetric({ name: 'publish_rate_limit_hits', value: 1, tags: { siteId, scope: 'site' } });
     throw new RateLimitError(`publish:site:${siteId}`, `publish rate limit exceeded for site ${siteId}`);
   }
   if (ctx.accountId !== undefined) {
     const accountLimiter = ctx.accountRateLimiter ?? defaultPublishAccountRateLimiter();
     if (!(await accountLimiter.consume(`publish:account:${ctx.accountId}`))) {
+      await emitMetric({
+        name: 'publish_rate_limit_hits',
+        value: 1,
+        tags: { siteId, scope: 'account', accountId: ctx.accountId },
+      });
       throw new RateLimitError(
         `publish:account:${ctx.accountId}`,
         `publish rate limit exceeded for account ${ctx.accountId}`,
@@ -140,21 +156,34 @@ export async function publishTheme(
 
   const generated = generateTheme(toGenerateInput(config));
   if (generated.violations.length > 0) {
+    await emitMetric({ name: 'apca_rejection_rate', value: 1, tags: { siteId } });
     return { ok: false, violations: generated.violations };
   }
 
   const cssText = toShadcnCss(generated.tokens);
-  const snapshot = await ctx.store.publish(
-    siteId,
-    {
-      tokens: generated.tokens,
-      cssText,
-      checksum: hashTokens(generated.tokens),
-      cssSha256: hashCssText(cssText),
-      ...(ctx.publishedBy !== undefined ? { publishedBy: ctx.publishedBy } : {}),
-    },
-    { expectedConfigVersion: config.version, ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}) },
-  );
+  const publishStartedAt = Date.now();
+  let snapshot: Snapshot;
+  try {
+    snapshot = await ctx.store.publish(
+      siteId,
+      {
+        tokens: generated.tokens,
+        cssText,
+        checksum: hashTokens(generated.tokens),
+        cssSha256: hashCssText(cssText),
+        ...(ctx.publishedBy !== undefined ? { publishedBy: ctx.publishedBy } : {}),
+      },
+      { expectedConfigVersion: config.version, ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}) },
+    );
+  } catch (err) {
+    await emitMetric({
+      name: 'store_adapter_error_rate',
+      value: 1,
+      tags: { siteId, adapter: ctx.store.constructor.name },
+    });
+    throw err;
+  }
+  await emitMetric({ name: 'publish_latency_ms', value: Date.now() - publishStartedAt, tags: { siteId } });
 
   if (opts.idempotencyKey !== undefined) {
     const idempotency = ctx.idempotency ?? DEFAULT_IDEMPOTENCY_STORE;

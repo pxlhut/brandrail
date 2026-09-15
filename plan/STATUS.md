@@ -16,7 +16,7 @@ Scope name: **`@pxlhut`** (D2)
 - [x] 12 store memory — 2026-09-15
 - [x] 13 service layer — 2026-09-15
 - [x] 14 store lucid — 2026-09-15
-- [ ] 15 ssr delivery
+- [x] 15 ssr delivery — 2026-09-15
 - [ ] 16 editor headless
 - [ ] 17 editor shadcn
 - [ ] 18 release
@@ -769,3 +769,57 @@ assumed otherwise needs to know.
   source imports them by design — see `models/account.ts`'s doc comment;
   the barrel gives them a real reachable path instead of leaving the
   warning in place).
+
+**Step 15.**
+
+- **No new subpath export.** `renderThemeStyle` ships from the existing
+  `./service` subpath (`service/features/delivery/`), not a new
+  `./delivery` package export — the step file's own "Output" column says
+  "a small `brand-store/service` helper", and nothing about the read path
+  needs its own entry point.
+- **`renderThemeStyle` takes the narrow `{ cssText, cssSha256 }` shape**
+  (`ThemeStyleSource`), not the full `Snapshot` — so a consumer whose
+  cache/edge layer (§4 tier 2/3) only holds those two fields can call it
+  without reconstructing a whole `Snapshot`.
+- **A generic `MetricsEmitter` (`service/features/metrics/`), not a
+  delivery-specific one.** §26's six named metrics split cleanly: four are
+  observable from inside this package's own code today
+  (`publish_latency_ms`, `apca_rejection_rate`, `publish_rate_limit_hits`,
+  `store_adapter_error_rate` — all wired into `publishTheme` in
+  `publishing/index.ts`) and two are not (`edge_cache_hit_ratio`,
+  `snapshot_row_count` — both need a cache or row-count layer step 15
+  deliberately doesn't build). Wiring the four real ones into
+  `publishTheme` rather than leaving the callback unused anywhere is what
+  makes "no-op default" a meaningful acceptance criterion instead of dead
+  code. `publish_latency_ms` is timed around the `store.publish()` call
+  specifically (not the whole pipeline), matching §26's own framing —
+  "catches a slow adapter or lock contention."
+- **`store_adapter_error_rate` is tagged `ctx.store.constructor.name`**,
+  the only adapter identity this service layer has without inventing a
+  separate adapter-name field on `BrandThemeStore` (not part of the
+  contract, D9's capabilities being the only self-description the
+  interface has today).
+- **The escaping regression test reuses the exact hostile string
+  (`</style><script>alert(1)</script>`) `brand-core`'s own
+  `shadcn.test.ts`/`escape.test.ts` use** — not a new example — so the two
+  tests demonstrably agree on what "safe" means at each layer: `toCss`'s
+  `declaration()` escapes it into `&lt;/style>&lt;script>...`, and this
+  step's test confirms that survives unchanged through
+  `publishTheme` → `renderThemeStyle` with exactly one real `</style>` left
+  in the output (the block's own closing tag).
+- **`read-path.md` ships next to `rules.md`** (both added to
+  `package.json`'s `files` array) — the same "prose spec an integrator
+  reads" pattern step 10 established, covering the three-step read path,
+  §4's scaling tiers (documented, neither cache layer built), the
+  Next.js `revalidateTag` snippet for the ISR gap (§39), and §5's visual
+  isolation note.
+- **No literal end-to-end test against a running app** — same
+  unfulfillable-literally situation step 14 already documented for
+  "wire into Forge": there is no real site or Next.js app in this repo to
+  render a first paint against. The acceptance criterion's substance —
+  Host header → active snapshot → inlined CSS with a matching CSP hash, no
+  `generateTheme()` call on that path — is exercised instead by
+  `delivery/index.test.ts`'s integration test, which runs a real
+  `publishTheme` through `MemoryBrandThemeStore` and independently
+  recomputes the CSP hash from the actual inlined bytes rather than
+  trusting the stored value.

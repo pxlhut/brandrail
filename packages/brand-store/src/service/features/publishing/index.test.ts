@@ -6,6 +6,7 @@ import { MemoryBrandThemeStore } from '../../../memory/index.js';
 import { RoleError } from '../access/index.js';
 import { RateLimitError, type RateLimiter } from '../limits/index.js';
 import type { InvalidationEvent } from '../events/index.js';
+import type { MetricEvent } from '../metrics/index.js';
 import { hashTokens } from './hash.js';
 import { publishTheme, rollback, type PublishContext } from './index.js';
 
@@ -203,6 +204,83 @@ describe('publishTheme — rate limits (§24, §38)', () => {
 
     await publishTheme('site-11', makeCtx({ store, accountRateLimiter }));
     expect(accountRateLimiter.consume).not.toHaveBeenCalled();
+  });
+});
+
+describe('publishTheme — metrics (§26), injectable with a no-op default', () => {
+  it('emits publish_latency_ms around the store publish call on success', async () => {
+    const store = new MemoryBrandThemeStore();
+    await seedConfig(store, 'site-14');
+    const metrics = vi.fn<(event: MetricEvent) => void>();
+
+    const result = await publishTheme('site-14', makeCtx({ store, metrics }));
+
+    expect(result.ok).toBe(true);
+    expect(metrics).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'publish_latency_ms', tags: { siteId: 'site-14' } }),
+    );
+  });
+
+  it('emits apca_rejection_rate, not publish_latency_ms, when the publish is rejected for contrast', async () => {
+    const store = new MemoryBrandThemeStore();
+    await store.saveConfig(
+      'site-15',
+      {
+        brandColor: '#7C6CFF',
+        controlConfig: { ...defaultControlConfig(), advancedTokens: { tier: 'raw' } },
+        fieldValues: {},
+        rawOverrides: { 'color.primary': '#808080', 'color.primary-foreground': '#808080' },
+        passthrough: {},
+        schemaVersion: 1,
+      },
+      0,
+    );
+    const metrics = vi.fn<(event: MetricEvent) => void>();
+
+    const result = await publishTheme('site-15', makeCtx({ store, metrics }));
+
+    expect(result.ok).toBe(false);
+    expect(metrics).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'apca_rejection_rate', tags: { siteId: 'site-15' } }),
+    );
+    expect(metrics).not.toHaveBeenCalledWith(expect.objectContaining({ name: 'publish_latency_ms' }));
+  });
+
+  it('emits publish_rate_limit_hits, tagged by scope, instead of throwing silently', async () => {
+    const store = new MemoryBrandThemeStore();
+    await seedConfig(store, 'site-16');
+    const metrics = vi.fn<(event: MetricEvent) => void>();
+    const siteRateLimiter: RateLimiter = { consume: async () => false };
+
+    await expect(
+      publishTheme('site-16', makeCtx({ store, metrics, siteRateLimiter })),
+    ).rejects.toBeInstanceOf(RateLimitError);
+    expect(metrics).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'publish_rate_limit_hits', tags: { siteId: 'site-16', scope: 'site' } }),
+    );
+  });
+
+  it('emits store_adapter_error_rate, tagged by the adapter class, when store.publish throws', async () => {
+    const store = new MemoryBrandThemeStore();
+    await seedConfig(store, 'site-17');
+    vi.spyOn(store, 'publish').mockRejectedValueOnce(new Error('simulated transaction failure'));
+    const metrics = vi.fn<(event: MetricEvent) => void>();
+
+    await expect(publishTheme('site-17', makeCtx({ store, metrics }))).rejects.toThrow(
+      'simulated transaction failure',
+    );
+    expect(metrics).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'store_adapter_error_rate',
+        tags: { siteId: 'site-17', adapter: 'MemoryBrandThemeStore' },
+      }),
+    );
+  });
+
+  it('defaults to a no-op — publishing works with no ctx.metrics at all', async () => {
+    const store = new MemoryBrandThemeStore();
+    await seedConfig(store, 'site-18');
+    await expect(publishTheme('site-18', makeCtx({ store }))).resolves.toMatchObject({ ok: true });
   });
 });
 

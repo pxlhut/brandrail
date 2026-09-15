@@ -52,7 +52,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "src/contract/rules.md"
+    "src/contract/rules.md",
+    "src/service/features/delivery/read-path.md"
   ],
   "scripts": {
     "build": "tsup",

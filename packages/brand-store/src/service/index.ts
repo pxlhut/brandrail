@@ -52,3 +52,9 @@ export type { RateLimiter } from './features/limits/index.js';
 
 export { noopInvalidationEmitter } from './features/events/index.js';
 export type { InvalidationEmitter, InvalidationEvent } from './features/events/index.js';
+
+export { noopMetricsEmitter } from './features/metrics/index.js';
+export type { MetricEvent, MetricsEmitter } from './features/metrics/index.js';
+
+export { renderThemeStyle } from './features/delivery/index.js';
+export type { ThemeStyleSource, RenderedThemeStyle } from './features/delivery/index.js';
