@@ -38,17 +38,19 @@ jobs:
 
       - run: pnpm build
 
-      # Written explicitly rather than trusting setup-node's own generated
-      # .npmrc — pnpm's publish path didn't pick that one up (two attempts,
-      # both a 404 on the actual publish call, which is npm's response to an
-      # unauthenticated request against a scope you're not a member of).
+      # Belt-and-suspenders alongside NODE_AUTH_TOKEN below: setup-node's own
+      # generated .npmrc is what `NPM_CONFIG_USERCONFIG` points plain `npm`
+      # at, but pnpm's own config resolution doesn't reliably pick that file
+      # up the same way, so the auth line is written explicitly too.
+      #
+      # (`npm whoami` briefly lived here as a debug step and reliably 401'd —
+      # a red herring: npm now refuses *identity* actions like whoami for a
+      # Bypass-2FA token even though the same token works fine for publish,
+      # its actual intended use. See docs.npmjs.com/about-access-tokens.)
       - name: Configure npm auth for pnpm publish
         run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Debug npm auth (temporary)
-        run: npm whoami --registry=https://registry.npmjs.org
 
       # Opens/updates a "Version Packages" PR when changesets are pending;
       # publishes to npm (via `pnpm release`, which builds then runs
