@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Unlike tsconfig.json: proofs/ genuinely needs Node (reading source
+    // files, `pnpm size`-style checks) and DOM (proof 4b's jsdom import), and
+    // it never ships — it only ever runs under vitest or tsc, never bundled
+    // into dist/. The purity constraint is about src/, which tsconfig.json
+    // still typechecks with neither.
+    "types": ["node"],
+    "lib": ["ES2022", "DOM"],
+    "noEmit": true
+  },
+  // The ambient `apca-w3` module shim is picked up by tsconfig.json's "src"
+  // include; this program's include is "proofs" only, so it needs naming
+  // directly — it's an ambient declaration, not something anything imports.
+  "include": ["proofs", "src/shared/color-math/apca-w3.d.ts"]
+}

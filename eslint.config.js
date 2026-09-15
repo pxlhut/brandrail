@@ -26,6 +26,7 @@ const NODE_GLOBALS = {
   process: 'readonly',
   __dirname: 'readonly',
   URL: 'readonly',
+  Buffer: 'readonly',
 };
 
 export default tseslint.config(

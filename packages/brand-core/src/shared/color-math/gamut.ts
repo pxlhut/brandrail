@@ -54,10 +54,27 @@ function round(value: number, places: number): number {
   return Math.round(value * factor) / factor + 0;
 }
 
+/**
+ * A value many orders of magnitude below `C_PRECISION`'s own step (1e-4).
+ * `value * factor` for a value that is already an exact multiple of
+ * `1/factor` does not always land back on an integer — `0.0372 * 10000` is
+ * `371.99999999999994`, not `372`, because 0.0372 has no exact binary
+ * representation. Without this nudge, `Math.floor` reads that as 371 and
+ * silently discards a whole precision step from an already-settled value.
+ *
+ * Found by step 09's property test: `finalize()` was not idempotent —
+ * applying it to its own output could shift chroma down by 0.0001, which was
+ * enough, right at a role's contrast floor, to turn a passing pick into a
+ * violation after the `toCss` → `parseColor` → `finalize` round-trip
+ * `findViolations` does. The margin this needs is the *representation*
+ * error in one multiplication, not a gamut-safety margin, so it can be tiny.
+ */
+const FLOOR_EPSILON = 1e-9;
+
 /** Round toward zero. Used for chroma, where rounding up can leave the gamut. */
 function floorTo(value: number, places: number): number {
   const factor = 10 ** places;
-  return Math.floor(value * factor) / factor + 0;
+  return Math.floor(value * factor + FLOOR_EPSILON) / factor + 0;
 }
 
 const isInSrgbRgb = inGamut('rgb');

@@ -20,6 +20,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Runs first: brand-store (step 10) imports types from brand-core's
+      # published surface, which TypeScript resolves through brand-core's
+      # own `dist/index.d.ts` (its package.json "types" field) — not through
+      # its source. Typecheck can't succeed on a cross-package import until
+      # that exists, so build has to come before it, not after.
+      - name: Build
+        run: pnpm build
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -30,11 +38,15 @@ jobs:
       - name: Architecture rules
         run: pnpm arch
 
+      # Also runs after build: proof 4's jsdom check imports the built
+      # bundle, and proof 6's snapshot needs a fresh dist/ to compare
+      # against nothing stale (step 09).
       - name: Test
         run: pnpm test
 
-      - name: Build
-        run: pnpm build
+      # Minified + gzipped, core only, budgeted (step 09, proof 6).
+      - name: Bundle size
+        run: pnpm size
 
       # brand-core must stay browser-safe and must not grow a third
       # runtime dependency without a recorded decision. Runs after build

@@ -10,8 +10,8 @@ Scope name: **`@pxlhut`** (D2)
 - [x] 06 core generateTheme — 2026-09-14
 - [x] 07 core validator — 2026-09-14
 - [x] 08 core serializers — 2026-09-14
-- [ ] 09 core proofs
-- [ ] 10 store contract
+- [x] 09 core proofs — 2026-09-14
+- [x] 10 store contract — 2026-09-15
 - [ ] 11 store conformance
 - [ ] 12 store memory
 - [ ] 13 service layer
@@ -298,3 +298,160 @@ assumed otherwise needs to know.
 - A typical generated tree serialises to roughly 2.8 KB unminified via
   `toShadcnCss` — comfortable headroom under the ~4 KB ceiling even before
   `minify`.
+
+**Step 09.**
+
+- **A real, reproducible bug, exactly as the step file predicted.** Proof 1
+  failed on its very first run (seed `20260914`, ~1 in 1000 inputs): a green
+  brand colour (`#1cc67a`) left `accent-foreground` at Lc 74.7 against a
+  75 floor. It was not step 04's chroma envelope — `pickForRole` correctly
+  found a ramp step measuring Lc 75.13 *in memory* and accepted it, but
+  `generateTheme`'s post-merge `findViolations` re-derives Lc from the
+  *serialised* CSS text (`toCss` → `parseColor` → `finalize`), and that
+  round-trip was not perfectly lossless. Root cause, found by bisecting with
+  a temporary debug print rather than guessed at: `finalize`'s `floorTo`
+  computed `Math.floor(value * 10000) / 10000`, and `0.0372 * 10000` is
+  `371.99999999999994`, not `372`, because 0.0372 has no exact binary
+  representation — so an already-settled chroma of `0.0372` re-finalized
+  (exactly what the `toCss`/`parseColor` round-trip does) silently became
+  `0.0371`, enough to drop Lc by ~0.4 right at the floor.
+- **First-attempt fix was wrong and reverted.** Tried adding a
+  `ROUND_TRIP_MARGIN` to `pickForRole`'s acceptance threshold (require
+  `minLc + 1` instead of `minLc`). This broke `palette/solver.test.ts`'s
+  existing, deliberate contract from step 04 — "clear the floor whenever the
+  ceiling allows it" — because a margin makes the solver report a false
+  shortfall for any surface whose true ceiling sits between `minLc` and
+  `minLc + margin`, which is a real, physically-achievable case that
+  contract explicitly requires clearing. A solver-side margin papers over a
+  representation bug with a behavioural change to an already-correct,
+  already-tested contract.
+- **Real fix: `floorTo` gets a `1e-9` epsilon before flooring**
+  (`shared/color-math/gamut.ts`). `finalize()` was not idempotent —
+  `finalize(finalize(x))` could differ from `finalize(x)` — which is a
+  correctness bug in its own right regardless of this specific symptom, and
+  a much narrower, more honest fix than adjusting an unrelated module's
+  acceptance threshold. Verified: 0 idempotency violations across a 100,000-
+  sample sweep (in-memory and round-tripped through `toCss`/`parseColor`),
+  all 9→11 stress-tested `fc` seeds at up to 20,000 runs each pass, and the
+  existing `palette/solver.test.ts` ceiling contract is untouched. A
+  regression test pinning the exact known-bad value (`{l:0.95, c:0.0372,
+  h:156.58}`) is in `gamut.test.ts`, next to the pre-existing (but
+  insufficiently probing — it happened not to hit this float edge) `is
+  idempotent` unit test. This is the concrete version of "these tests are the
+  product's warranty": a hand-picked idempotency example passed while the
+  actual property it was meant to guarantee had a real hole.
+- **CI/`verify` reordered: build now runs before test, not after.** Proof 4b
+  imports the *built* `dist/index.js` under a jsdom environment (the actual
+  claim guideline §3 makes — "runs in a browser" — checked directly, not by
+  proxy), and needed a fresh bundle to exist first. `pnpm purity` already
+  depended on this ordering implicitly; now `pnpm test` and the new
+  `pnpm size` do too. Root `package.json`'s `verify` script and
+  `.github/workflows/ci.yml` both changed:
+  typecheck → lint → arch → **build → test → size** → purity.
+- **`brand-core` gets a second tsconfig, `tsconfig.proofs.json`.**
+  `tsconfig.json` (strict: no Node types, no DOM lib) is what enforces `src/`
+  purity at the type level — but `proofs/` legitimately needs both (reading
+  files, a jsdom `window`/`document` check), and widening the one tsconfig
+  for everything would have quietly stopped that strict check from ever
+  running. `proofs/` moved out of `tsconfig.json`'s `include` and into its
+  own config extending only the shared `tsconfig.base.json`; `fixtures/`
+  stayed put since it needs neither. `brand-core`'s `typecheck` script now
+  runs both. The ambient `apca-w3` module shim (`src/shared/color-math/
+  apca-w3.d.ts`) had to be named explicitly in the new config's `include` —
+  it's an ambient declaration nothing imports, so it isn't pulled in
+  transitively the way a real module would be.
+- **New devDependencies**: `fast-check` and `jsdom` on `brand-core` (proofs
+  1/2 and 4b); `@types/node` on `brand-core` (proofs need real Node types,
+  unlike `src/`); `esbuild` on the root package (already present transitively
+  via `tsup` — added directly so `scripts/check-bundle-size.mjs` can
+  `import('esbuild')` under pnpm's strict `node_modules`).
+- **Bundle budget is a root script, not a `proofs/` test**
+  (`scripts/check-bundle-size.mjs`, matching `check-core-purity.mjs`'s own
+  pattern), per the step's own "Output" column listing it separately from
+  `brand-core/proofs/`. Minifies `dist/index.js` in memory with esbuild
+  purely for measurement — `tsup.config.ts` itself stays unminified, since
+  shipping already-minified library code is debatable practice and nothing
+  in the step asked for it, only for the *number* to be measured and
+  budgeted. `culori`/`apca-w3` exclusion needed no extra work: tsup already
+  treats every `dependencies` entry as external. Measured: ~7.5 KB
+  minified+gzipped against a 15 KB budget — published in the README.
+- **Proof 3's cross-process snapshot uses vitest's own `toMatchSnapshot()`**
+  rather than a hand-rolled compare-to-committed-file script — that mechanism
+  already *is* "a snapshot file, committed to the repo, compared on every CI
+  run," with better diffing than anything worth hand-rolling. Covers ~20
+  fixed inputs spanning plain brand colours, `neutralTone`, non-default
+  shape/typography, `buttonStyle`, and all three override layers (guided,
+  direct, raw).
+- **Proof 5 (hostile corpus through the full pipeline) confirmed core never
+  calls the validator** — `generateTheme`/`mergeLayers` accept a raw hostile
+  value into the tree without complaint, exactly as steps 06/07 documented
+  (validation is step 13's job, at the service-layer boundary). The
+  assertion that matters is narrower and more honest than "nothing hostile
+  reaches the tree": no bare `<` survives into *any* serializer's output,
+  proving the escaping backstop holds even when the gate in front of it is
+  bypassed entirely.
+- **Proof 7 implements eight named cases, not seven.** The step file's prose
+  lists eight (`#000000`, `#FFFFFF`, `#808080`, a chroma-0.005 input, a
+  neon, a dark saturated, a yellow, and a hue near `info`) but titles the
+  section "the edge cases" with an acceptance criterion that says "seven" —
+  an off-by-one in the plan text itself. Implemented all eight rather than
+  dropping one to match the count; each is a distinct, real edge (three
+  different achromatic paths alone: `h === undefined` for pure grey, and
+  `c < ACHROMATIC_THRESHOLD` with a defined-but-tiny hue for `#7e8184`, are
+  different branches in `resolveHue`).
+- The info-hue-collision case (`#3355ee`, hue 267.5°, 17.5° from info's
+  250°) asserts an advisory *and* zero violations — the collision is a UX
+  note (§34), not a floor failure, and conflating the two would make the
+  test meaningless the way a solver that lied about its own result would.
+
+**Step 10.**
+
+- **Root `verify`/CI reordered again: build now runs *first*, before
+  typecheck.** This is the first step where a package other than
+  `brand-core` actually imports from it (`import type {...} from
+  '@pxlhut/brand-core'` in `contract/index.ts`), and TypeScript resolves a
+  workspace dependency through its `package.json` `"types"` field —
+  `./dist/index.d.ts` — not through its source. Verified concretely: on a
+  clean `rm -rf packages/*/dist`, `pnpm typecheck` alone fails with "Cannot
+  find module '@pxlhut/brand-core'"; `pnpm build` first (which is already
+  topologically ordered by `pnpm -r`, confirmed by inspecting build log
+  order) fixes it. Same class of issue as step 09's build-before-test
+  reorder, one layer further back in the pipeline.
+- **`StoreError`'s constructor must not be `protected`.** First attempt
+  marked it `protected` on top of the class already being `abstract`,
+  intending only to block `new StoreError(...)`. It also blocked `new
+  ConflictError(...)` and every other subclass that doesn't redeclare its
+  own constructor — a subclass inherits the base constructor's accessibility
+  when it doesn't declare one of its own. `abstract` alone already prevents
+  direct instantiation of the base class; the redundant `protected` was
+  actively wrong, not just unnecessary. Caught by `tsc`, not by a test.
+- **`BaseBrandThemeStore` has zero optional methods today** — all eight of
+  `BrandThemeStore`'s methods are abstract, because all eight are required
+  right now. Its value is entirely forward-looking (§23): adapters extend it
+  from the start so that the *first* optional capability this contract ever
+  grows doesn't require every existing adapter to change its `extends`
+  clause. Its one non-abstract member, `protected unsupported(feature)`,
+  isn't called by anything in this codebase yet — proven correct anyway
+  (`index.test.ts`), via a test-only stub subclass that exposes it, so the
+  first real optional method can lean on it immediately.
+- **`PreviewInput.expiresAt` is a `Date`; `Preview.expiresAt` (already
+  committed, step 03) stays the ISO `string` it was.** Deliberate, not an
+  inconsistency — flagged as expected in step 03's own deviation notes,
+  written in advance of this step. `brand-store` carries none of
+  `brand-core`'s no-clock purity constraint (guideline §39 is about core
+  needing to run identically client- and server-side; the store boundary
+  has no such requirement), so the input type takes what a caller actually
+  has, and the adapter converts to ISO when it writes the row.
+- **`rules.md` is the prose version of the seven rules; the doc comments on
+  `BrandThemeStore` in `index.ts` are the version that ships in
+  IntelliSense** (confirmed the comments survive into `dist/index.d.ts`
+  intact). Both matter for different readers, so `rules.md` was added to
+  `package.json`'s `files` array alongside `dist` — otherwise it would exist
+  in the repo but not reach anyone installing the published package, despite
+  being the file "an adapter author reads" per the step's own framing.
+- `brand-store/package.json`'s `test` script dropped `--passWithNoTests` now
+  that `contract/` has real tests — same move step 02 documented for
+  `brand-core` once step 04 landed real tests there. The package's other
+  subtrees (`conformance/`, `memory/`, `service/`) are still empty
+  placeholders; that's fine, vitest only needs *some* test file to exist
+  somewhere in the project.

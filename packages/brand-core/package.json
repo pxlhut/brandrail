@@ -26,7 +26,7 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.proofs.json"
   },
   "dependencies": {
     "apca-w3": "^0.1.9",
@@ -36,6 +36,9 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/culori": "^4.0.1"
+    "@types/culori": "^4.0.1",
+    "@types/node": "^26.5.1",
+    "fast-check": "^4.10.0",
+    "jsdom": "^30.0.1"
   }
 }

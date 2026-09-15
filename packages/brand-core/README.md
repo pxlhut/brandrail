@@ -3,6 +3,13 @@
 One brand colour in, a complete OKLCH/APCA-validated design token tree out.
 Pure, browser-safe, framework-agnostic (see `DECISIONS.md` D10).
 
+**~7.5 KB minified and gzipped** (core only — `culori` and `apca-w3` are
+peer/external, not bundled), budgeted at 15 KB and enforced in CI
+(`pnpm size`, `scripts/check-bundle-size.mjs`). Every claim in this README —
+"APCA-validated", "pure and deterministic", "runs in a browser", this size
+figure — has a proof behind it in `proofs/`, not just a unit test on a
+handful of hand-picked inputs; see `plan/09-core-proofs.md`.
+
 ## Output serializers
 
 `generateTheme()` produces a `TokenTree`. Three functions turn it into CSS,

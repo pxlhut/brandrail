@@ -50,6 +50,21 @@ describe('finalize', () => {
     expect(finalize(once)).toEqual(once);
   });
 
+  it('is idempotent even when floating-point noise makes value * 10⁴ undershoot an integer', () => {
+    // Found by step 09's property test, not by inspection: `0.0372 * 10000`
+    // is `371.99999999999994`, not `372`, because 0.0372 has no exact binary
+    // representation. `floorTo` used to read that as 371 and silently drop a
+    // whole precision step — turning an already-settled chroma of 0.0372 into
+    // 0.0371 on a second pass. That single ten-thousandth was enough, right at
+    // a role's contrast floor, to turn a passing pick into a violation once
+    // `findViolations` re-derived it from serialised CSS text.
+    expect(0.0372 * 10000).not.toBe(372); // the representation error this guards against
+    const once = finalize({ l: 0.95, c: 0.0372, h: 156.58 });
+    expect(once.c).toBe(0.0372);
+    expect(finalize(once)).toEqual(once);
+    expect(finalize(parseColor(toCss(once)))).toEqual(once);
+  });
+
   it('rounds to output precision, chroma always downward', () => {
     // Chroma rounds down so it can never cross back out of the gamut.
     const out = finalize({ l: 0.623871430674, c: 0.0123456789, h: 283.39400485 });
