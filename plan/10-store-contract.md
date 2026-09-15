@@ -162,3 +162,27 @@ service layer that calls this — step 13.
 Each of the seven contract rules becomes at least one conformance test.
 Write the rules and the tests in the same sitting if you can — a rule you
 can't figure out how to test is usually a rule that's ambiguous.
+
+## Notes from step 14 — a contract ambiguity this file left implicit
+
+`siteId: string` says nothing about *format*, and the conformance suite's
+own fixtures (`freshSiteId()`) deliberately mint ids shaped
+`site-<uuid>`, not bare UUIDs — proving the contract treats `siteId` as an
+opaque caller-supplied string, never a value the adapter may parse,
+validate, or constrain. `LucidBrandThemeStore` first typed `site_id` as a
+Postgres `uuid` column with a foreign key into `sites.id` (guideline
+§38's own literal DDL), and the conformance suite's atomicity test failed
+immediately with `invalid input syntax for type uuid`. See `DECISIONS.md`
+D12 for the fix. Written back here because every future relational
+adapter will reach for the same `uuid` + FK design guideline §2/§38
+suggests, and hit the same failure, unless this file says not to:
+
+**Rule 8 (added): a site's `siteId` has no required relationship to a
+`sites` table row.** `saveConfig`'s very first call for a site *is* how
+its config comes into existence (§22, this file's own text above) — there
+is no separate provisioning step, so an adapter cannot require a matching
+`sites` row to already exist before a config or a publish can happen. Any
+`sites`/`accounts` schema an adapter ships (guideline §38) is for a host
+app's own site/account management; it is not load-bearing for the store
+contract and must not gate `saveConfig`, `publish`, or `createPreview`
+with a foreign key.

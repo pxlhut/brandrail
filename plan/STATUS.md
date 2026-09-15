@@ -15,7 +15,7 @@ Scope name: **`@pxlhut`** (D2)
 - [x] 11 store conformance — 2026-09-15
 - [x] 12 store memory — 2026-09-15
 - [x] 13 service layer — 2026-09-15
-- [ ] 14 store lucid
+- [x] 14 store lucid — 2026-09-15
 - [ ] 15 ssr delivery
 - [ ] 16 editor headless
 - [ ] 17 editor shadcn
@@ -658,3 +658,114 @@ assumed otherwise needs to know.
   but only as a devDependency there; this is the first *runtime* Node
   built-in). No purity concern the way it would be in `brand-core`: this
   package has never claimed to run in a browser.
+
+**Step 14.**
+
+- **"Wire into Forge" cannot be literally fulfilled.** "Forge" never
+  appears anywhere in this repository outside the guideline's own
+  second-person prose ("wire it into your platform") — it is a
+  placeholder name for "the reader's own platform", not a real app or
+  package here, the same way step 01 already flagged that the `@pxlhut`
+  npm scope doesn't exist yet. There is no real site to provision,
+  publish, roll back, or serve in this codebase, so that acceptance
+  criterion and "a real site in Forge publishes, rolls back, and serves
+  the right CSS" are acknowledged as unfulfillable in this repository
+  rather than faked with an invented host app. Everything else the
+  criterion implies — provision, publish, rollback, serve — is exercised
+  instead by the conformance suite and the concurrency tests below,
+  against a real (if throwaway) Postgres database.
+- **`LucidBrandThemeStore` never uses the Lucid `models/` it ships.** Every
+  read/write goes through the raw query client (`db.from`/`db.table`/
+  `db.transaction`) directly, so `publish()`'s row lock, version
+  computation and upsert all live in one module (`store/
+  publish_transaction.ts`) instead of being split across the ORM and
+  hand-written SQL. The seven `BaseModel` subclasses in `models/` exist
+  only as a schema reference for the rest of a host app's own code — their
+  own doc comments say so.
+- **Found a real contract ambiguity: `site_id` cannot be a `uuid` column
+  with a foreign key to `sites`, even though guideline §2/§38's DDL reads
+  that way literally.** The step 11 conformance suite's own fixtures mint
+  ids shaped `site-<uuid>`, not bare UUIDs, and exercise `saveConfig`/
+  `publish` for sites with no corresponding `sites` row at all — the store
+  contract has no separate site-provisioning step. Fixed by typing
+  `site_id` (and the adapter-generated `id`/`snapshot_id`/`updated_by`/
+  `published_by`/`created_by` columns alongside it) as `text` with no
+  foreign key, in every table the store contract touches. Full writeup:
+  `DECISIONS.md` D12, and a new rule 8 in `plan/10-store-contract.md`.
+- **`publish()` and `saveConfig()` each needed a second concurrency fix
+  beyond D12's type change**: `select ... for update` on a `brand_configs`
+  row locks nothing when the row doesn't exist yet, so a genuinely
+  concurrent *first-ever* publish or save for a site raced freely on
+  `max(version)`/the insert-vs-update branch and produced duplicate
+  versions — caught by the conformance suite's atomicity test (rule 1)
+  failing `2` fulfilled out of `8` concurrent publishes. Both methods now
+  run `insert into brand_configs (...) on conflict (site_id) do nothing`
+  immediately before their `select ... for update`; for a real race the
+  *insert* itself is what serialises the callers, and the lock afterward
+  always has a row to hold. The placeholder row's `version: 0` is the
+  same sentinel this package already uses for "no config exists yet", so
+  `getConfig` was updated to treat a `version: 0` row as `null` rather
+  than a real config.
+- **AdonisJS/Lucid models and migrations need legacy TypeScript decorators
+  (`experimentalDecorators`/`emitDecoratorMetadata`), not the stage-3
+  native decorators the rest of this monorepo's `tsconfig.base.json`
+  assumes.** Confirmed by reading `@adonisjs/tsconfig`'s own published
+  config rather than guessing. Added both options to
+  `packages/brand-store-lucid/tsconfig.json` only — the shared root config
+  every other package extends is untouched.
+- **`luxon` had to be added as a runtime dependency, not just
+  `@adonisjs/lucid`/`pg`** — Lucid's own `utils` module imports it
+  unconditionally at load time even though `@adonisjs/lucid` marks it an
+  *optional* peer dependency; nothing in this package uses `DateTime`
+  columns. Without it, every migration/query crashes at import time with
+  `Cannot find package 'luxon'`.
+- **The test harness runs migrations without Ace or Lucid's `Migrator`**:
+  both assume a fully Ace-booted app and a `migrations` bookkeeping table.
+  `store/test-support/database.ts` builds a standalone `Database` via
+  `AppFactory`/`EmitterFactory`/`LoggerFactory` (the same three
+  constructor arguments `Database` takes outside a booted app), and
+  `store/test-support/migrate.ts` instantiates each `BaseSchema` subclass
+  directly and calls `execUp()` — the same method `Migrator` itself calls
+  per file, just without the file-discovery and bookkeeping around it.
+  `runMigrations` wraps a `hasTable` guard in a
+  `pg_advisory_xact_lock`-held transaction, not a bare check, because two
+  callers *do* race in practice (next bullet).
+- **Every real-Postgres test for this package lives in one file**
+  (`lucid_brand_theme_store.conformance.test.ts`: the conformance suite
+  plus the `unique (site_id, version)` and cross-site-lock tests), not
+  split across several. A second file with its own `beforeAll` was tried
+  first and raced the first file's migrations and `reset()` truncates
+  under the *root* workspace test run (`pnpm test`/`pnpm verify` across
+  every package) — real Postgres deadlocks and `create table` races, even
+  though this package's own `vitest.config.ts` sets
+  `fileParallelism: false` and the same two files never raced when run
+  standalone via `pnpm --filter @pxlhut/brand-store-lucid test`. Root
+  workspace mode (`projects: ['packages/*']`) doesn't appear to honour a
+  project's own `fileParallelism` the same way a standalone invocation
+  does. The advisory lock in `migrate.ts` is a second, independent layer
+  of defence for the same root cause (belt-and-braces, since a future
+  second file is easy to reintroduce by accident); the one-file rule is
+  the actual fix.
+- **Connection settings for the conformance/concurrency tests come from
+  `PG*` env vars**, defaulting to `127.0.0.1:5432`/`postgres`/`postgres`/
+  `own_branding_test` — chosen to match a plain `postgres:16-alpine`
+  service container with no extra configuration, and `.github/
+  workflows/ci.yml` now runs exactly that service alongside the existing
+  `verify` job so `pnpm test` for this package is a real Postgres run in
+  CI, not a mock. A local run without Docker needs a matching database, or
+  the env vars pointed at one — documented in
+  `store/test-support/database.ts`'s own doc comment.
+- Ships three entry points (`.`, `./provider`, `./models`), not one:
+  `./provider` is the Adonis service provider (`register()` binds a
+  `LucidBrandThemeStore` singleton over Lucid's own `'lucid.db'`, aliased
+  as `'brand.store'`), kept separate from the store class itself so
+  importing the class alone doesn't pull in `@adonisjs/core`'s
+  `ApplicationService` type. `@adonisjs/core` moved from a
+  devDependency-only to a `peerDependency` (kept as a devDependency too,
+  for this package's own build/typecheck) because the provider's public
+  surface now names its type. `./models` is a barrel over `models/` (a
+  practical side effect: `dependency-cruiser`'s `no-orphans` check was
+  warning on all seven model files, since nothing in this package's own
+  source imports them by design — see `models/account.ts`'s doc comment;
+  the barrel gives them a real reachable path instead of leaving the
+  warning in place).

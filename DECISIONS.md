@@ -373,6 +373,51 @@ implements fourteen.
 
 ---
 
+## D12 — `site_id` is a plain string column, never a `uuid` FK to `sites`
+
+*Added 2026-09-15 during step 14.*
+
+**Context.** Guideline §2/§38's DDL, read literally, types every
+`site_id` column `uuid` with a foreign key into `sites.id`. Building
+`brand-store-lucid`'s migrations that way, then running the step 11
+conformance suite (step 14's own acceptance criterion) against real
+Postgres, failed immediately: `freshSiteId()` (`brand-store/conformance`)
+deliberately mints ids shaped `site-<uuid>`, not bare UUIDs, and every
+test publishes or saves a config for a site with **no corresponding
+`sites` row** — there is no provisioning step in the contract (step 10)
+that would create one first.
+
+**Decision.** In every table the store contract touches
+(`brand_configs`, `brand_theme_snapshots`, `brand_theme_active`,
+`brand_theme_previews`), `site_id` — and the generated-id columns `id`
+(snapshots, previews) and `snapshot_id`/`updated_by`/`published_by`/
+`created_by` alongside it — is `text`, with **no foreign key** to
+`sites`. `accounts.id`/`sites.id`/`sites.account_id` stay `uuid`, per
+§38's own literal text, since the store contract never touches those two
+tables at all.
+
+This is also why `publish()`'s row lock needed a second fix: `select ...
+for update` on a `brand_configs` row that doesn't exist yet locks
+nothing, so a genuinely concurrent first-ever `publish()` for a site
+raced on `max(version)` and produced duplicate versions. `publish()` and
+`saveConfig()` now both run `insert into brand_configs (...) values (...)
+on conflict (site_id) do nothing` immediately before the `select ... for
+update` — for a real first-time race, the *insert* is what serialises the
+callers (a second transaction's insert of the same `site_id` blocks until
+the first commits), and the lock afterward always has a row to hold. The
+placeholder row it creates has `version: 0` — the sentinel this package
+already used everywhere for "no config yet" — so `getConfig` still
+returns `null` for a site that has published but never called
+`saveConfig`.
+
+**Consequence.** Written back into `plan/10-store-contract.md` as rule 8:
+a site's `siteId` has no required relationship to a `sites` table row,
+and no future adapter may gate a store-contract method behind a foreign
+key. Any relational adapter after this one (D10: demand-driven) should
+expect the same failure if it copies guideline §2/§38's DDL literally.
+
+---
+
 ## Folder structure
 
 Feature-based. A feature owns its types, constants, logic and tests

@@ -1,5 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "noEmit": true },
+  "compilerOptions": {
+    // AdonisJS/Lucid models and migrations use legacy decorators, not the
+    // shared root config's stage-3 native ones — scoped to this package
+    // only, never the root config other packages share.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "noEmit": true
+  },
   "include": ["src"]
 }

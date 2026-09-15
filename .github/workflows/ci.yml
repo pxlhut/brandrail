@@ -8,6 +8,25 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # @pxlhut/brand-store-lucid (step 14) runs the step 11 conformance
+    # suite against a real Postgres, not a mock — the acceptance criterion
+    # the whole package exists to satisfy. These defaults match
+    # `packages/brand-store-lucid/src/store/test-support/database.ts`'s
+    # own `PG*` env var defaults exactly, so no extra env is needed below.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: own_branding_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -60,3 +79,6 @@ jobs:
       # runs it — the same way it already runs brand-store's own fixture
       # store against it. A real adapter (step 12, 14) picks this up for
       # free the moment it adds its own `*.test.ts` calling the suite.
+      # Step 14's adapter is the one exception that needs infrastructure:
+      # it runs the suite against real Postgres, hence the `postgres`
+      # service block above.
