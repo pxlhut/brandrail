@@ -51,3 +51,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # `actions/setup-node`'s `registry-url` writes an `.npmrc` that reads
+          # *this* env var specifically — `NPM_TOKEN` alone (above) is what
+          # `changesets/action` itself looks for, but the actual `npm publish`
+          # underneath authenticates via `NODE_AUTH_TOKEN`. Without it the
+          # publish runs unauthenticated and npm returns 404, not 401.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
