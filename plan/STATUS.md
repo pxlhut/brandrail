@@ -13,7 +13,7 @@ Scope name: **`@pxlhut`** (D2)
 - [x] 09 core proofs — 2026-09-14
 - [x] 10 store contract — 2026-09-15
 - [x] 11 store conformance — 2026-09-15
-- [ ] 12 store memory
+- [x] 12 store memory — 2026-09-15
 - [ ] 13 service layer
 - [ ] 14 store lucid
 - [ ] 15 ssr delivery
@@ -519,3 +519,37 @@ assumed otherwise needs to know.
   store, fails a non-compliant one); step 12 builds
   `@pxlhut/brand-store/memory` from scratch as the real, published
   deliverable, per the step file's own "Out of scope: any real adapter."
+
+**Step 12.**
+
+- **Deliberately claiming `transactional` only fails the suite if the
+  adapter is *also* actually broken — a correctly-serialized store claiming
+  either label passes.** The step file's "temporarily claim transactional,
+  watch the suite fail" only reproduces if the mutex is *also* removed at
+  the same time — a genuinely well-implemented per-site lock is
+  behaviourally indistinguishable from a real DB transaction to an external
+  test, which is exactly why step 11 tests both labels with the same
+  assertion. Did the verification as the step file intends: temporarily
+  removed the `enqueue` mutex from `publish` **and** relabelled
+  `atomicPublish: 'transactional'`, confirmed the atomicity test failed
+  (`[1,1,1,1,1,1,1,1]` instead of `[1..8]`), then reverted both. Also had to
+  reintroduce the same artificial `await` between read and write that step
+  11's fixture needed — without it, removing the mutex alone doesn't
+  actually race, for the same single-threaded-JS reason.
+- **`saveConfig`, `publish` and `rollback` all share one per-site mutex**,
+  not just `publish`. The contract's rule 4 (optimistic concurrency) has no
+  declared capability tier the way `publish` does, but a concurrent
+  `saveConfig` race (two callers both reading the same current version,
+  both passing the check, one write clobbering the other) is the identical
+  bug class rule 1 exists to catch — a reference adapter shouldn't ship it
+  just because the conformance suite doesn't happen to stress-test
+  concurrent `saveConfig` calls.
+- **Added `clear()`** alongside the step file's own `seed()`/`dump()`
+  suggestions — not mentioned in the plan, but needed for
+  `runConformanceSuite`'s `reset` option to have anything to call: the
+  suite creates the store once and clears it between tests, and there's no
+  way to do that from outside without either a public reset method or
+  reaching into private fields.
+- 233 lines, under the ~250 budget; only dependency is `@pxlhut/brand-core`
+  (`defaultControlConfig` for a first `saveConfig`'s fallback shape) plus
+  the sibling `contract/` module.
