@@ -12,7 +12,7 @@ Scope name: **`@pxlhut`** (D2)
 - [x] 08 core serializers — 2026-09-14
 - [x] 09 core proofs — 2026-09-14
 - [x] 10 store contract — 2026-09-15
-- [ ] 11 store conformance
+- [x] 11 store conformance — 2026-09-15
 - [ ] 12 store memory
 - [ ] 13 service layer
 - [ ] 14 store lucid
@@ -455,3 +455,67 @@ assumed otherwise needs to know.
   subtrees (`conformance/`, `memory/`, `service/`) are still empty
   placeholders; that's fine, vitest only needs *some* test file to exist
   somewhere in the project.
+
+**Step 11.**
+
+- **`runConformanceSuite` calls bare global `describe`/`it`/`beforeAll`/
+  `beforeEach`/`afterEach`/`expect` — never imported from `'vitest'` or
+  `'jest'` anywhere under `conformance/`.** This is what the step file's
+  "no bespoke runner" line actually requires: both frameworks provide these
+  as true runtime globals (Jest always; Vitest opt-in via `test.globals:
+  true`), so a library that only calls the bare identifiers slots into
+  whichever one is actually running, with zero dependency on either.
+  `conformance/globals.d.ts` declares them ambiently, with `var` (not
+  `function`) specifically so they're typed as reassignable — needed for
+  the sandbox technique below. `packages/brand-store/vitest.config.ts` sets
+  `test.globals: true` scoped to *this package only* (confirmed empirically
+  that a per-package vitest config layers under the root's `projects:
+  ['packages/*']` without needing any change to the shared root config).
+- **Proving "an over-claiming adapter fails the suite" without leaving a
+  permanently-red test.** `runConformanceSuite` itself has no dry-run mode —
+  it just calls `describe`/`it`. So `test-support/sandbox.ts` temporarily
+  *reassigns* `globalThis.describe`/`it`/the hooks to an in-process fake
+  collector, runs the suite against it, restores the real ones immediately
+  after registration completes, then executes the collected tests itself
+  and returns a pass/fail summary as data — `expect` is deliberately left
+  untouched throughout, since the real one (already global via
+  `test.globals: true`) works identically regardless of who's "running" the
+  test body. Sanity-checked the technique isn't vacuous: temporarily
+  weakened `atomicity.ts`'s own assertion and confirmed the meta-test
+  correctly went red, then reverted.
+- **A genuinely-broken fixture needed an artificial `await` between reading
+  the current version and writing the new snapshot.** First draft of the
+  "unserialized" fixture had no `await` anywhere in its publish path at
+  all — meaning the whole function body ran synchronously to completion
+  before any other call could interleave, making JS's single-threaded model
+  atomic *by accident* regardless of whether the code actually serialized
+  per site. Added `await new Promise(r => setTimeout(r, 1))` between the
+  read and the write to simulate the round-trip latency a real network-
+  backed adapter has — the genuine gap the serialization queue exists to
+  protect against, and without which the "deliberately broken" fixture
+  wouldn't actually have been broken.
+- **`atomicPublish: 'transactional'` and `'serialized'` are held to the
+  *same* outcome assertion** (no torn state under `Promise.all`-driven
+  concurrent publish: exactly the version set `{1..N}`, no duplicates, no
+  gaps) rather than different test shapes. The distinction between a real
+  DB transaction and an app-level lock is a difference in mechanism, and an
+  external behavioural test can't observe mechanism — only the outcome both
+  levels equally promise. `'none'` gets a materially weaker check (ordinary
+  sequential use still has to work; concurrent races are the point of
+  declaring `'none'` and aren't asserted against at all).
+- **Clarified a real ambiguity step 10 left open: how a site's very first
+  `saveConfig` call works**, since the interface has no separate
+  `provisionSite`/`createConfig` method. Standardised on `expectedVersion:
+  0` meaning "no config exists yet for this site" (0 can never be a real
+  config's version, so it can't collide with a stale read of an existing
+  one) — added to both `contract/index.ts`'s doc comment and `rules.md`
+  under rule 4, and exercised directly in `optimistic-concurrency.ts`.
+  Found while writing the round-trip suite, which needs *some* way to seed
+  a config before it can test reading one back.
+- **`FixtureStore` (test-only, `conformance/fixture-store.ts`) is not the
+  step 12 memory adapter** and is never imported from `conformance/index.ts`
+  — confirmed the shipped `dist/conformance.js` contains none of it. It
+  exists solely to prove the suite itself is correct (passes a compliant
+  store, fails a non-compliant one); step 12 builds
+  `@pxlhut/brand-store/memory` from scratch as the real, published
+  deliverable, per the step file's own "Out of scope: any real adapter."

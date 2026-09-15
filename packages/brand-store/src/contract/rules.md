@@ -47,6 +47,13 @@ And writes nothing (§22).
 Two admins editing the same site's theme at once must not silently clobber
 each other; the second write has to know it lost the race.
 
+**Creation is a special case of this rule, not a separate method.** This
+interface has no `provisionSite`/`createConfig` method — a site's very
+first `saveConfig` call is what brings its `BrandConfig` row into
+existence, by passing `expectedVersion: 0` ("no config exists yet"). `0`
+can never be a real config's version, so it can't collide with an actual
+stale read.
+
 ## 5. `getActiveSnapshot` returns `null` for an unknown site — never throws
 
 Guideline §20 makes "a provisioned site with no snapshot at all" impossible

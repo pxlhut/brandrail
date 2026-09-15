@@ -54,4 +54,9 @@ jobs:
       - name: Core purity
         run: pnpm purity
 
-      # The store-adapter conformance matrix lands here in step 11.
+      # Step 11's conformance suite (@pxlhut/brand-store/conformance) needs
+      # no separate CI matrix: every adapter's own test file calls
+      # `runConformanceSuite` against itself, so `pnpm test` above already
+      # runs it — the same way it already runs brand-store's own fixture
+      # store against it. A real adapter (step 12, 14) picks this up for
+      # free the moment it adds its own `*.test.ts` calling the suite.

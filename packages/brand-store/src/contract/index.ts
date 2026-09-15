@@ -75,6 +75,14 @@ export interface BrandThemeStore {
   /**
    * §22's optimistic concurrency. Rule 4: a stale `expectedVersion` throws
    * {@link ConflictError} and writes nothing.
+   *
+   * This interface has no separate "provision a site" method — a site's
+   * very first `saveConfig` call *is* how its `BrandConfig` row comes into
+   * existence. Pass `expectedVersion: 0` for that first call, meaning "no
+   * config exists yet for this site"; the adapter creates one at version 1.
+   * `0` is never a real config's version (versions start at 1, same as
+   * `Snapshot.version` — rule 2), so it can't collide with an actual stale
+   * read the way e.g. `undefined` could.
    */
   saveConfig(
     siteId: string,
