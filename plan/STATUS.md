@@ -1108,15 +1108,61 @@ an action only the account owner can take. Everything else is done.
   matrix a normal PR does, rather than a hand-maintained second copy of
   those steps that could quietly drift from the real one.
 
-**Remaining before this project is actually released, in order:**
+**Update — 0.1.0 is published, and needed a same-day 0.1.1.** The account
+owner did the npm side themselves (org, token, secret); two more real
+things were learned getting from there to actually-published packages,
+worth recording since they'll bite the next new package this monorepo
+ships too:
 
-1. `npm login` (or an automation token) as whoever owns the `pxlhut` npm
-   scope, then create the `@pxlhut` org if `npm publish`'s first attempt
-   reports it doesn't exist yet.
-2. Add that token as this GitHub repo's `NPM_TOKEN` secret, for
-   `release.yml`.
-3. `git push -u origin main`, then either run `pnpm release` locally once
-   to publish 0.1.0 directly, or push a no-op commit and merge the
-   "Version Packages" PR `release.yml` opens.
-4. Record the `locked → direct` demo and embed it at the top of the
-   README, per the step file's own instruction.
+- **npm requires a brand-new package's very first publish to happen
+  interactively (a real 2FA prompt), full stop — no Bypass-2FA automation
+  token can create a package that doesn't exist yet**, only publish new
+  versions of one that already does (an npm policy change effective
+  August 2026: [github.blog/changelog/2026-07-31-restricting-npm-bypass-2fa-granular-access-tokens](https://github.blog/changelog/2026-07-31-restricting-npm-bypass-2fa-granular-access-tokens/)).
+  `release.yml`'s `NPM_TOKEN` was correctly configured the entire time —
+  every attempt failed with an identical 404 (npm's deliberate response
+  for "not authorized," indistinguishable from "doesn't exist," so it
+  doesn't leak which) regardless of how the token or the workflow's auth
+  wiring changed, because the actual blocker was categorical, not
+  configuration. Diagnosed by ruling out the workflow (a real, non-dry-run
+  publish attempt with verbose logging, run as a temporary debug step)
+  before ruling out the token. Fixed the only way it can be: the account
+  owner ran `npm publish` by hand, once, for each of the four packages.
+- **That manual first publish then shipped a real bug**: plain `npm
+  publish` has no idea what pnpm's `workspace:*` protocol is, so
+  `@pxlhut/brand-store`, `-store-lucid` and `brand-editor` — everything
+  with an internal dependency — published with a **literal, unresolvable
+  `"workspace:*"`** in `dependencies`, confirmed by installing `0.1.0`
+  from the real registry into a scratch project and watching `npm install`
+  fail with `EUNSUPPORTEDPROTOCOL`. `@pxlhut/brand-core` (no internal
+  deps) was unaffected. `pnpm publish`/`pnpm pack` rewrite the protocol to
+  a real version correctly (confirmed directly: packed the tarball,
+  inspected `package.json` inside it) — `npm publish` never had a chance
+  to. Fixed with a same-day `0.1.1` patch across all four (the "fixed"
+  changeset group moves them together regardless of which actually
+  changed), published through the now-working automated `release.yml`
+  this time, since a *version bump* to an *existing* package isn't subject
+  to the interactive-first-publish rule above. **The lesson for next
+  time**: a brand-new package's one unavoidable manual step is
+  `npm login` followed by `pnpm publish --access public --no-git-checks`
+  from that package's own directory — never plain `npm publish` — even
+  though only `npm publish`/`npm login` can actually complete that first,
+  interactive publish.
+- Confirmed on the real registry afterward, not assumed: all four
+  packages' `dependencies` now show a real resolved version
+  (`registry.npmjs.org/@pxlhut/<name>/0.1.1`), and a scratch-project
+  `npm install @pxlhut/brand-core@0.1.1 @pxlhut/brand-store@0.1.1`
+  succeeds.
+
+**Genuinely remaining:**
+
+1. Record the `locked → direct` demo and embed it at the top of the
+   README, per the step file's own instruction — still needs a human with
+   screen-recording software, not something this environment can do.
+2. Before January 2027: migrate `release.yml` off a Bypass-2FA granular
+   token entirely — npm is removing even version-bump publishing for that
+   token type by then, in favour of OIDC "Trusted Publishing" (register
+   this repo/workflow on npmjs.com; the workflow authenticates with a
+   short-lived token instead of a stored secret). Not urgent today. Worth
+   its own step file rather than a footnote if this monorepo is still
+   being extended by then.

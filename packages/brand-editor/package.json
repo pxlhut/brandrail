@@ -1,6 +1,6 @@
 {
   "name": "@pxlhut/brand-editor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Headless React state for a brand settings screen that reshapes itself from the platform's control config.",
   "license": "MIT",
   "author": {

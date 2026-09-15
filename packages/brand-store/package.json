@@ -1,7 +1,7 @@
 {
   "name": "@pxlhut/brand-store",
-  "version": "0.1.0",
-  "description": "The persistence contract for brand themes: draft, publish, immutable snapshot, rollback. Zero database dependency \u2014 bring your own.",
+  "version": "0.1.1",
+  "description": "The persistence contract for brand themes: draft, publish, immutable snapshot, rollback. Zero database dependency — bring your own.",
   "license": "MIT",
   "author": {
     "name": "Misbahur Rahman",

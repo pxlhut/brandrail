@@ -1,6 +1,6 @@
 {
   "name": "@pxlhut/brand-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Generate a complete, gamut-mapped, APCA-validated design token tree from one brand colour. Pure, browser-safe, framework-agnostic.",
   "license": "MIT",
   "author": {

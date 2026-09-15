@@ -1,5 +1,23 @@
 # @pxlhut/brand-store
 
+## 0.1.1
+
+### Patch Changes
+
+- Fix broken internal dependency ranges in the published 0.1.0 packages.
+
+  0.1.0 was published via `npm publish` for its required first-time
+  interactive/2FA step, which doesn't understand pnpm's `workspace:*`
+  protocol — `@pxlhut/brand-store`, `@pxlhut/brand-store-lucid` and
+  `@pxlhut/brand-editor` were published with a literal, unresolvable
+  `"workspace:*"` in their `dependencies`, breaking install for everyone.
+  This release re-publishes through `pnpm publish` (via this repo's own
+  `changeset publish`), which correctly rewrites the workspace protocol to
+  a real version range before publishing.
+
+- Updated dependencies
+  - @pxlhut/brand-core@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

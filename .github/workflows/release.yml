@@ -42,24 +42,10 @@ jobs:
       # generated .npmrc is what `NPM_CONFIG_USERCONFIG` points plain `npm`
       # at, but pnpm's own config resolution doesn't reliably pick that file
       # up the same way, so the auth line is written explicitly too.
-      #
-      # (`npm whoami` briefly lived here as a debug step and reliably 401'd —
-      # a red herring: npm now refuses *identity* actions like whoami for a
-      # Bypass-2FA token even though the same token works fine for publish,
-      # its actual intended use. See docs.npmjs.com/about-access-tokens.)
       - name: Configure npm auth for pnpm publish
         run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # Temporary: `--dry-run` (tried first) exits 0 without ever making the
-      # authenticated network request, so it proved nothing. This is a real
-      # publish call — not wasted even if it works, since brand-core needs
-      # publishing anyway — with verbose logging to see npm's actual
-      # response instead of changesets' summarized error.
-      - name: Debug publish auth (temporary)
-        working-directory: packages/brand-core
-        run: npm publish --loglevel silly --registry=https://registry.npmjs.org 2>&1 | tail -150
 
       # Opens/updates a "Version Packages" PR when changesets are pending;
       # publishes to npm (via `pnpm release`, which builds then runs
