@@ -17,7 +17,7 @@ Scope name: **`@pxlhut`** (D2)
 - [x] 13 service layer — 2026-09-15
 - [x] 14 store lucid — 2026-09-15
 - [x] 15 ssr delivery — 2026-09-15
-- [ ] 16 editor headless
+- [x] 16 editor headless — 2026-09-15
 - [ ] 17 editor shadcn
 - [ ] 18 release
 
@@ -403,6 +403,73 @@ assumed otherwise needs to know.
   250°) asserts an advisory *and* zero violations — the collision is a UX
   note (§34), not a floor failure, and conflating the two would make the
   test meaningless the way a solver that lied about its own result would.
+
+**Step 16.**
+
+- **`@pxlhut/brand-editor` now depends on `@pxlhut/brand-store`** — not just
+  `@pxlhut/brand-core`, as the scaffold (step 02) originally wired it. The
+  hook reuses the *real* `enforceTiers`/`saveDraft` tier-check
+  (`@pxlhut/brand-store/service`) for its own client-side validation, and
+  `toGenerateInput` for its live preview, rather than re-deriving either —
+  the whole reason to reuse them is that the client and server can no
+  longer silently drift apart on what a tier or a contrast floor allows.
+  `ConflictError` comes from the top-level `@pxlhut/brand-store` export
+  (the contract's own errors), not `/service`, which doesn't re-export it.
+- **`controlConfig` is its own reactive hook input, separate from
+  `initial.controlConfig`.** The step file's own sketch lists both; this is
+  why: acceptance criterion 4 ("changing `controlConfig` from `locked` to
+  `direct` … changes the returned field state with no other code change")
+  only holds if the tier authority can change across renders independently
+  of the draft the owner is editing — a plan upgrade or a live demo
+  shouldn't require re-fetching the whole `BrandConfig`. `setField`'s
+  `enforceTiers` call and the live-preview's violation→field mapping both
+  read this prop, never `draft.controlConfig`.
+- **`FieldValueFor<K>` is derived from `DraftPatch`**
+  (`Required<Omit<DraftPatch, 'expectedVersion'>>[K]`) rather than declared
+  a second time. `DraftPatch`'s field keys are exactly `FieldId`'s fourteen
+  members already — two independently-maintained per-field value shapes
+  would be a second place for the two to drift, the same reasoning step 03
+  gave for `PartialTokenValue`.
+- **A rejected publish's violations and a live-preview violation are
+  resolved to a field id by the same function**, not two. Since
+  `generateTheme`'s base output always clears its own floors (its own doc
+  comment), a violation can only come from a Direct/Raw colour override —
+  and `semanticColors` and `advancedTokens` both land in the same
+  `rawOverrides` bag, keyed by the same token path (step 13's own
+  documented simplification, not solved here either). Told apart the same
+  way step 13 tells them apart: if `semanticColors` is locked, only
+  `advancedTokens` could have written that path.
+- **Publish always flushes the pending debounced save first, and aborts
+  with a typed `PublishAbortedError` if that flush doesn't land** —
+  `onPublish` is wired to whatever the *server* thinks the current config
+  is; without flushing, a publish requested inside the 400 ms debounce
+  window would ship a draft older than what's on screen. The abort matters
+  because `usePublish`'s own `conflict` prop is a snapshot from the render
+  that called `publish()`; a conflict discovered by the flush *inside* that
+  same call can't retroactively update it, so `flush()` returns a
+  `FlushOutcome` (`'flushed' | 'nothing-pending' | 'conflict' | 'error'`)
+  that `publish()` reads directly instead. Caught by writing the test for
+  it, not by inspection — `publish()`'s first draft called `onPublish()`
+  unconditionally after `await flush()`, which would have silently
+  published a config missing the owner's own last edit.
+- **A failed save puts its patch back on the pending queue rather than
+  dropping it** — on both a `ConflictError` and a generic failure. The
+  owner's keystrokes must survive a rejected save; only `reload()` (an
+  explicit, caller-initiated reset) clears pending edits.
+- Added `react-dom`, `@types/react`, `@types/react-dom` and
+  `@testing-library/react` as devDependencies, and a package-local
+  `vitest.config.ts` setting `environment: 'jsdom'` — the same "layer a
+  config file under the root's `projects` list" pattern step 11 used for
+  `test.globals`. `react` itself was already resolved via the existing
+  `peerDependencies` entry; added as a devDependency too, matching how
+  step 14 handled `@adonisjs/core`.
+- The end-to-end test (`use-brand-editor.test.tsx`) wires `onSave`/
+  `onPublish` to the *real* `saveDraft`/`publishTheme` (step 13) over a
+  real `MemoryBrandThemeStore` (step 12) — not a test double for either —
+  which is what acceptance criterion 9 ("works against the step 12
+  in-memory store with no database") actually asks for, and is exactly the
+  integration `memory/index.ts`'s own doc comment already anticipated
+  ("give … the editor (step 16) a store that needs no database").
 
 **Step 10.**
 
