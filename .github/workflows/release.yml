@@ -52,14 +52,14 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # Temporary: the real publish keeps 404ing even with the token wired
-      # up. This hits the *actual* publish auth/permission path (unlike
-      # whoami, which npm now blocks for this token type regardless) without
-      # a real side effect, and dumps verbose output so we can see the real
+      # Temporary: `--dry-run` (tried first) exits 0 without ever making the
+      # authenticated network request, so it proved nothing. This is a real
+      # publish call — not wasted even if it works, since brand-core needs
+      # publishing anyway — with verbose logging to see npm's actual
       # response instead of changesets' summarized error.
       - name: Debug publish auth (temporary)
         working-directory: packages/brand-core
-        run: npm publish --dry-run --loglevel silly --registry=https://registry.npmjs.org 2>&1 | tail -100
+        run: npm publish --loglevel silly --registry=https://registry.npmjs.org 2>&1 | tail -150
 
       # Opens/updates a "Version Packages" PR when changesets are pending;
       # publishes to npm (via `pnpm release`, which builds then runs
