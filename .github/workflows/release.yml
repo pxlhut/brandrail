@@ -38,6 +38,18 @@ jobs:
 
       - run: pnpm build
 
+      # Written explicitly rather than trusting setup-node's own generated
+      # .npmrc — pnpm's publish path didn't pick that one up (two attempts,
+      # both a 404 on the actual publish call, which is npm's response to an
+      # unauthenticated request against a scope you're not a member of).
+      - name: Configure npm auth for pnpm publish
+        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Debug npm auth (temporary)
+        run: npm whoami --registry=https://registry.npmjs.org
+
       # Opens/updates a "Version Packages" PR when changesets are pending;
       # publishes to npm (via `pnpm release`, which builds then runs
       # `changeset publish`) when that PR is merged and no changesets remain.
