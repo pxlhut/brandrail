@@ -29,7 +29,7 @@
     "verify": "pnpm build && pnpm typecheck && pnpm lint && pnpm arch && pnpm test && pnpm size && pnpm purity",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm build && changeset publish"
+    "release": "pnpm build && node scripts/publish-unpublished.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.7",

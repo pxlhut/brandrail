@@ -48,12 +48,21 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Opens/updates a "Version Packages" PR when changesets are pending;
-      # publishes to npm (via `pnpm release`, which builds then runs
-      # `changeset publish`) when that PR is merged and no changesets remain.
+      # publishes to npm when that PR is merged and no changesets remain.
+      #
+      # `publish` is a custom script, not `pnpm release` (`changeset
+      # publish`) — see scripts/publish-unpublished.mjs's own doc comment
+      # for why: every publish attempt through pnpm's own registry client
+      # 404'd, for reasons that survived a correctly-scoped, correctly-
+      # permissioned token, a permissive per-package "Publishing access"
+      # setting, and a from-scratch token regeneration. Packing with pnpm
+      # (which correctly resolves workspace:*) and publishing the tarball
+      # with plain `npm publish` is the combination that actually worked
+      # for this project's first, manual release.
       - name: Create Release PR or Publish
         uses: changesets/action@v1
         with:
-          publish: pnpm release
+          publish: node scripts/publish-unpublished.mjs
           version: pnpm version-packages
           commit: "chore: version packages"
           title: "chore: version packages"
