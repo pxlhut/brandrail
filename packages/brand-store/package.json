@@ -1,8 +1,28 @@
 {
   "name": "@pxlhut/brand-store",
-  "version": "0.0.0",
-  "description": "The persistence contract for brand themes: draft, publish, immutable snapshot, rollback. Zero database dependency — bring your own.",
+  "version": "0.1.0",
+  "description": "The persistence contract for brand themes: draft, publish, immutable snapshot, rollback. Zero database dependency \u2014 bring your own.",
   "license": "MIT",
+  "author": {
+    "name": "Misbahur Rahman",
+    "url": "https://www.misbahurbd.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pxlhut/brandrail.git",
+    "directory": "packages/brand-store"
+  },
+  "homepage": "https://github.com/pxlhut/brandrail/tree/main/packages/brand-store#readme",
+  "bugs": "https://github.com/pxlhut/brandrail/issues",
+  "keywords": [
+    "design-tokens",
+    "theming",
+    "white-label",
+    "multi-tenant",
+    "database-agnostic",
+    "orm-agnostic",
+    "postgres"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {

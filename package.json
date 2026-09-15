@@ -1,6 +1,18 @@
 {
-  "name": "brand-tokens-monorepo",
+  "name": "brandrail",
   "private": true,
+  "description": "Multi-tenant brand theming for platforms that white-label — one hex in, an APCA-validated design-token tree out, with a per-field control-tier model the platform vendor owns.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pxlhut/brandrail.git"
+  },
+  "homepage": "https://github.com/pxlhut/brandrail#readme",
+  "bugs": "https://github.com/pxlhut/brandrail/issues",
+  "license": "MIT",
+  "author": {
+    "name": "Misbahur Rahman",
+    "url": "https://www.misbahurbd.com"
+  },
   "type": "module",
   "packageManager": "pnpm@12.0.0",
   "engines": {

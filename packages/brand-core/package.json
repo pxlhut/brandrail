@@ -1,8 +1,31 @@
 {
   "name": "@pxlhut/brand-core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Generate a complete, gamut-mapped, APCA-validated design token tree from one brand colour. Pure, browser-safe, framework-agnostic.",
   "license": "MIT",
+  "author": {
+    "name": "Misbahur Rahman",
+    "url": "https://www.misbahurbd.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pxlhut/brandrail.git",
+    "directory": "packages/brand-core"
+  },
+  "homepage": "https://github.com/pxlhut/brandrail/tree/main/packages/brand-core#readme",
+  "bugs": "https://github.com/pxlhut/brandrail/issues",
+  "keywords": [
+    "design-tokens",
+    "theming",
+    "white-label",
+    "multi-tenant",
+    "oklch",
+    "apca",
+    "accessibility",
+    "wcag",
+    "color",
+    "shadcn"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {

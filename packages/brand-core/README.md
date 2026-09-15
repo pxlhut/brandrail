@@ -3,6 +3,26 @@
 One brand colour in, a complete OKLCH/APCA-validated design token tree out.
 Pure, browser-safe, framework-agnostic (see `DECISIONS.md` D10).
 
+Part of [Brandrail](https://github.com/pxlhut/brandrail) — multi-tenant
+brand theming with a per-field control-tier model the platform vendor
+owns. See the [main README](https://github.com/pxlhut/brandrail#readme)
+for the full pitch and the other three packages.
+
+```bash
+npm install @pxlhut/brand-core
+```
+
+```ts
+import { generateTheme, toShadcnCss } from "@pxlhut/brand-core";
+
+const { tokens, buttonStyle } = generateTheme({ brandColor: "#7c6cff" });
+const css = toShadcnCss(tokens, { buttonStyle });
+```
+
+See the [quickstart](https://github.com/pxlhut/brandrail/blob/main/docs/quickstart.md)
+for adding persistence and a settings UI on top of this. The rest of this
+file is the serializer reference below.
+
 **~7.5 KB minified and gzipped** (core only — `culori` and `apca-w3` are
 peer/external, not bundled), budgeted at 15 KB and enforced in CI
 (`pnpm size`, `scripts/check-bundle-size.mjs`). Every claim in this README —

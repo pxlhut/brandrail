@@ -1008,3 +1008,115 @@ assumed otherwise needs to know.
 - No change to `@pxlhut/brand-editor`'s own hook surface was needed beyond
   step 16 — the step file's own note ("if step 17 needs logic the hook
   doesn't expose, add it here") didn't come up.
+
+**Step 18.** Not checked off above — two of its acceptance criteria need
+an action only the account owner can take. Everything else is done.
+
+- **The project got a real name: Brandrail.** Not in any prior planning
+  document — this step is the first time the work needed a name a human
+  reads (a README title, a repo). Chosen over the plainer working name
+  `brand-tokens` for what it points at: the tier model *is* a set of
+  graduated guardrails on how much a tenant can change, and that's the one
+  differentiating claim with no npm competitor.
+- **A GitHub repo (`pxlhut/brandrail`, public) was created and wired as
+  `origin`** — this repo had no remote before this step. The `pxlhut`
+  GitHub org already existed (the account owner's own company, matching
+  the `@pxlhut` npm scope from D2) and allows members to create public
+  repos, so this didn't need a new org, only a new repo inside the
+  existing one.
+- **npm publish and the `@pxlhut` npm org still don't exist** — D2/step 01
+  already flagged the org as a prerequisite for this step, and creating it
+  plus running the actual `npm publish` both require the account owner's
+  own npm login, which this session doesn't have and shouldn't acquire
+  itself: publishing four packages publicly under someone's real identity
+  is exactly the kind of hard-to-reverse, externally-visible action that
+  needs an explicit go-ahead at the moment it happens, not implied by
+  agreeing to the step in general. Everything up to that point — metadata,
+  docs, changesets, the actual version bump — is done and verified against
+  packed tarballs (below); what's left is `npm login` and either
+  `pnpm release` run locally, or merging the "Version Packages" PR
+  `release.yml` opens once `NPM_TOKEN` is added as a repo secret.
+- **Changesets forces a from-`0.0.0` package straight to `1.0.0` on its
+  first version bump, regardless of the bump type requested** — its own
+  documented behaviour for a package that looks unpublished, not a
+  misconfiguration here. Since this step is explicit that release is
+  **0.1.0, not 1.0.0** (the store contract has only one real adapter; a
+  0.x escape hatch matters more than a 1.0 guarantee right now), the
+  version was corrected back to `0.1.0` by hand in all four `package.json`
+  files and each generated `CHANGELOG.md` header after running
+  `changeset version` once.
+- **`packages/brand-editor/public/` (the `shadcn build` output) is
+  committed, not `.gitignore`d.** The first pass treated it as a pure
+  build artefact and ignored it, same as `dist/`. It isn't, in one
+  specific way: it's also the *hosting* for the registry item — `npx
+  shadcn add` needs a real, fetchable URL, and this repo has no other
+  hosting story for one yet. Committing `public/r/brand-editor.json` and
+  serving it via `raw.githubusercontent.com` is a real, commonly-used
+  pattern for a GitHub-hosted shadcn registry and is what
+  `docs/quickstart.md` and both `brand-editor` READMEs actually link to.
+  `brand-editor`'s `build` script now runs `shadcn build` right after
+  `tsup`, so the committed JSON can't silently drift from the component
+  source it's generated from; `shadcn` moved from an `npx`-invoked tool to
+  a real devDependency for the same reason.
+- **The README's own "lead with the recorded demo" instruction is only
+  half-satisfiable.** The `locked → direct` behaviour is real, tested
+  (`brand-editor.test.tsx`, step 17), and described with the actual before/
+  after config diff at the top of the README — but there is no
+  screen-recording capability in this environment, so no video exists.
+  The README says so plainly rather than linking a video that isn't there
+  or omitting the gap silently.
+- **Every README/doc claim was checked against the actual test file it
+  cites**, not written from memory of what step 09/11/13/15/17 were
+  supposed to prove — two inaccuracies caught this way before they shipped:
+  `provisionSite` returns a `Snapshot`, not the `BrandConfig` the
+  quickstart's next line needed (fixed to call `store.getConfig` after),
+  and the store contract is eight methods, not the step file's own
+  approximate "~7" (used the real count instead of repeating the
+  approximation).
+- **The quickstart was run for real, not just read for plausibility**:
+  `@pxlhut/brand-core` and `@pxlhut/brand-store` packed via `pnpm pack`,
+  installed into a scratch project from the tarballs, and the exact
+  `docs/quickstart.md` snippet run against them with `node` — generates
+  CSS containing `--primary`, provisions a site, saves a draft, and
+  publishes successfully. `@pxlhut/brand-store-lucid` and
+  `@pxlhut/brand-editor` already got the equivalent treatment in step 14
+  and step 17 respectively.
+- **Author metadata is the account owner's own name and site, not the
+  Pxlhut company** — `package.json`'s `author` field (all five
+  `package.json`s) and the README's licence line credit Misbahur Rahman /
+  misbahurbd.com / github.com/misbahurbd directly, at the account owner's
+  explicit request mid-step. `LICENSE`'s copyright line was left as
+  Pxlhut (the org that owns the npm scope and the GitHub repo) — a
+  narrower reading of the same request, since changing a legal copyright
+  holder is a different kind of decision than an attribution field, and
+  wasn't asked for specifically.
+- **Left untouched, deliberately: the literal `https://yourdomain/…`
+  placeholder in `IMPLEMENTATION-PLAN.md` and `plan/17-editor-shadcn.md`.**
+  Both are historical planning documents — the spec as it read before
+  implementation, not live documentation — and the "no placeholder in
+  source, docs, or `plan/`" checklist item is read here as covering what
+  ships or what a reader actually follows today, which is the README and
+  `docs/` (both point at the real, working `raw.githubusercontent.com`
+  URL). Rewriting a step file after the fact to match what was actually
+  built is what `STATUS.md`'s own Deviations sections exist to record
+  instead of doing.
+- Added `.github/workflows/release.yml` (Changesets' own PR-then-publish
+  flow) rather than a bare `npm publish` step, so a future release is
+  `git push` plus merging one PR, not a command someone has to remember to
+  run locally in the right order. Split `ci.yml`'s `on:` to add
+  `workflow_call` so `release.yml` gates on *exactly* the same conformance
+  matrix a normal PR does, rather than a hand-maintained second copy of
+  those steps that could quietly drift from the real one.
+
+**Remaining before this project is actually released, in order:**
+
+1. `npm login` (or an automation token) as whoever owns the `pxlhut` npm
+   scope, then create the `@pxlhut` org if `npm publish`'s first attempt
+   reports it doesn't exist yet.
+2. Add that token as this GitHub repo's `NPM_TOKEN` secret, for
+   `release.yml`.
+3. `git push -u origin main`, then either run `pnpm release` locally once
+   to publish 0.1.0 directly, or push a no-op commit and merge the
+   "Version Packages" PR `release.yml` opens.
+4. Record the `locked → direct` demo and embed it at the top of the
+   README, per the step file's own instruction.

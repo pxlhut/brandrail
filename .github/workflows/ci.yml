@@ -4,6 +4,10 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Lets release.yml call this workflow directly, so a release gates on
+  # exactly the same conformance matrix a normal PR does — not a
+  # hand-maintained duplicate of these steps.
+  workflow_call:
 
 jobs:
   verify:

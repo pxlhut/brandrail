@@ -4,6 +4,3 @@ coverage/
 *.tsbuildinfo
 .DS_Store
 .turbo/
-
-# `shadcn build` output (packages/brand-editor) — generated from registry.json, not committed.
-packages/brand-editor/public/
