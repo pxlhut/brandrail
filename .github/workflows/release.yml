@@ -52,6 +52,15 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # Temporary: the real publish keeps 404ing even with the token wired
+      # up. This hits the *actual* publish auth/permission path (unlike
+      # whoami, which npm now blocks for this token type regardless) without
+      # a real side effect, and dumps verbose output so we can see the real
+      # response instead of changesets' summarized error.
+      - name: Debug publish auth (temporary)
+        working-directory: packages/brand-core
+        run: npm publish --dry-run --loglevel silly --registry=https://registry.npmjs.org 2>&1 | tail -100
+
       # Opens/updates a "Version Packages" PR when changesets are pending;
       # publishes to npm (via `pnpm release`, which builds then runs
       # `changeset publish`) when that PR is merged and no changesets remain.
