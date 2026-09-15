@@ -84,7 +84,12 @@ module.exports = {
 
   options: {
     doNotFollow: { path: 'node_modules' },
-    exclude: { path: '(node_modules|dist|/proofs/|/fixtures/)' },
+    // `brand-editor/registry` is excluded outright, not just from the layering
+    // rules (which only ever scoped brand-core anyway): its `@/*` imports
+    // resolve against a *consumer's* project layout, not this monorepo's
+    // `tsconfig.base.json`, so this tool can't resolve them at all — every
+    // file in that tree reads as a false-positive orphan otherwise (step 17).
+    exclude: { path: '(node_modules|dist|/proofs/|/fixtures/|packages/brand-editor/registry/)' },
     tsConfig: { fileName: 'tsconfig.base.json' },
     tsPreCompilationDeps: true,
     enhancedResolveOptions: {

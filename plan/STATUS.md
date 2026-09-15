@@ -18,7 +18,7 @@ Scope name: **`@pxlhut`** (D2)
 - [x] 14 store lucid — 2026-09-15
 - [x] 15 ssr delivery — 2026-09-15
 - [x] 16 editor headless — 2026-09-15
-- [ ] 17 editor shadcn
+- [x] 17 editor shadcn — 2026-09-15
 - [ ] 18 release
 
 ## Deviations
@@ -890,3 +890,121 @@ assumed otherwise needs to know.
   `publishTheme` through `MemoryBrandThemeStore` and independently
   recomputes the CSP hash from the actual inlined bytes rather than
   trusting the stored value.
+
+**Step 17.**
+
+- **A plain `role="radiogroup"` of `Button`s, not shadcn's own `ToggleGroup`,
+  for §31's segmented control.** Generating the current default shadcn
+  project (`npx shadcn init -d` → the "base-nova" preset) showed the CLI now
+  builds on Base UI, not Radix — a real, current instance of "the format has
+  moved" this step's own file warned about. Base UI's `ToggleGroup` takes an
+  array `value` even in effectively-single-select use, where Radix's
+  `type="single"` takes a bare string; a registry item has to compile
+  against whichever base the *installing* project uses, and those two
+  aren't the same shape. Every other control in this registry item is
+  written the same way for the same reason — plain controlled props
+  (`value`/`onValueChange`, `onValueChange(next: string | null, ...)` always
+  guarded for `null`) rather than anything specific to one base's richer
+  API — but `ToggleGroup` was the one place the divergence was a type
+  shape, not just an extra argument, so it was dropped rather than papered
+  over. Full reasoning and the roving-`tabIndex`/arrow-key implementation:
+  `registry/brand-editor/controls/select-control.tsx`'s own doc comment.
+- **`registry/brand-editor/**` is excluded from `depcruise packages`
+  entirely** (`.dependency-cruiser.cjs`'s `options.exclude.path`), not just
+  left out of the layering rules (which never touched anything outside
+  `brand-core` regardless). Its `@/*` imports resolve against a *consumer's*
+  `components.json`, not this monorepo's `tsconfig.base.json` — unresolvable
+  under the tool's own config, which made every file in the tree read as a
+  false-positive `no-orphans` warning.
+- **Relative imports inside `registry/brand-editor/**` have no `.js`
+  suffix**, unlike every other package in this monorepo. Every other
+  package is compiled by `tsup` to real Node ESM, where the `.js` suffix is
+  required. Registry files are never compiled at all — they're copied
+  verbatim into a consumer's own Next.js/Vite app and resolved by *that*
+  project's bundler against real files on disk, which have a `.tsx`
+  extension, not `.js`. `tsc` alone didn't catch this (`moduleResolution:
+  "Bundler"` resolves a `.js`-suffixed specifier to a same-named `.ts`/`.tsx`
+  file happily) — found only by actually running `npx shadcn add` against a
+  real, freshly-`shadcn init`'d Next.js app and then `next build`, which
+  failed on `Module not found: Can't resolve './brand-editor.js'`. This is
+  the acceptance criterion ("test the install into a clean Next.js + shadcn
+  project before shipping … an install that half-works is worse than no
+  registry") doing exactly the job it's there for.
+- **A dev-only `registry/_dev/` tree** (real shadcn `components/ui/*` +
+  `lib/utils.ts`, generated once via `npx shadcn init`/`add` into a
+  throwaway Next.js app and copied here) backs a `registry/tsconfig.json`
+  (`paths: { "@/*": ["./_dev/*"] }`) and `vitest.config.ts`'s
+  `resolve.alias`, so this monorepo's own `tsc`/`vitest` can typecheck and
+  test `registry/brand-editor/**`'s `@/*` imports against real component
+  APIs rather than hand-written stubs. Not shipped — absent from
+  `package.json`'s `files` array (which also gained a `!registry/brand-editor/**/*.test.tsx`
+  negation so the registry item's own test file doesn't end up inside a
+  consumer's `node_modules`, which `npm pack`'s tarball contents confirmed
+  it would otherwise). `package.json`'s `typecheck` script now runs both
+  `tsconfig.json` and `registry/tsconfig.json`.
+- **The install test used tarballs, not the workspace protocol.**
+  `pnpm pack` for `brand-core`/`brand-store`/`brand-editor` (which rewrites
+  `workspace:*` to the real `0.0.0` version, the same way a real
+  `npm publish` would), installed into the scratchpad Next.js app via a
+  `pnpm-workspace.yaml` `overrides` block pointing `@pxlhut/brand-core`/
+  `@pxlhut/brand-store` at those tarball paths (`pnpm add @scope/name@file:…`
+  and a package.json-only `"pnpm"` field both turned out not to work: pnpm
+  12 moved `overrides` out of `package.json` into `pnpm-workspace.yaml`, and
+  without it pnpm still tried to resolve `@pxlhut/brand-core`'s bare
+  `0.0.0` version — brand-editor's own dependency on it — against the real
+  npm registry and 404'd). This is what actually exercises "installs
+  cleanly" rather than a workspace symlink that could hide a real packaging
+  gap.
+- **A demo Next.js app was built in the scratchpad, not committed
+  anywhere** — no repo in this monorepo has a real Next.js app to render
+  `<BrandEditor />` in, the same "unfulfillable literally, substance
+  exercised another way" situation step 14 and step 15 already hit. The
+  demo (a server component provisioning a `MemoryBrandThemeStore` site,
+  two API routes calling the real `saveDraft`/`publishTheme`, and a client
+  page rendering `<BrandEditor />`) is what actually caught the `.js`
+  import bug above, ran clean through `next build`'s static generation, and
+  served a real `next start` response containing the expected fields — but
+  it lives only in this session's scratchpad, not in this repository.
+- **The locked → direct demo is implemented and covered by a component
+  test** (`brand-editor.test.tsx`: flipping `semanticColors`'
+  `controlConfig` from `locked` to `direct` with no other change swaps the
+  "Managed by the platform" text for four editable colour swatches), **but
+  not recorded** — there is no screen-recording capability available in
+  this environment. Step 18's README (which is what actually needs the
+  recording, per its own "Lead with the `locked → direct` demo" instruction)
+  will need it captured manually against either the scratchpad app above or
+  a fresh one.
+- **jsdom has no layout engine**, which matters for one component test:
+  Base UI's `Slider` keeps its thumb `visibility: hidden` until a
+  `ResizeObserver` reports a real, non-zero size — jsdom has neither by
+  default. Added a minimal synchronous `ResizeObserver` stub
+  (`registry/_dev/vitest.setup.ts`) so the component mounts at all, but the
+  thumb's own `role="slider"` never becomes accessible under jsdom the way
+  it does in a real browser regardless. The elevation-slider test checks
+  for the underlying native `input[type="range"]` directly instead of
+  querying by role, with a comment explaining why.
+- **`ColorViolations`' list key includes the violation's array index**, not
+  just `${fg}-${bg}` — light and dark mode can each independently fail the
+  same role pairing, so the pairing alone collided (a real React
+  "duplicate key" warning surfaced by the component test with two
+  simultaneous `advancedTokens` violations, not a hypothetical).
+- **`RawControl` needed its own `violations` prop and `<ColorViolations />`
+  wired in.** `advancedTokens` and a raw-tier `semanticColors` both take
+  the same accessibility-feature framing step 16 gives Direct-tier colour
+  fields (§34's floors apply regardless of tier) — missed on the first pass
+  because `ColorControl`/`SemanticColorsControl` already had it and
+  `RawControl` was built afterward without cross-checking; caught by the
+  same component test asserting a raw override's contrast failure is
+  visible, not just that Publish is disabled.
+- **`PublishBar` gained its own `publishError` prop, distinct from
+  `saveError` and `conflict`.** `usePublish`'s `publish()` only ever throws
+  `PublishAbortedError` for a conflict abort — every other rejection is the
+  *consumer's own* `onPublish` failing (a network error, a thrown 500), and
+  `BrandEditor`'s first pass called `void state.publish()` from the button,
+  which turns that into a silent unhandled promise rejection. `BrandEditor`
+  now catches, ignores `PublishAbortedError` (already surfaced via
+  `state.conflict`), and shows anything else as its own "Publish failed"
+  alert.
+- No change to `@pxlhut/brand-editor`'s own hook surface was needed beyond
+  step 16 — the step file's own note ("if step 17 needs logic the hook
+  doesn't expose, add it here") didn't come up.

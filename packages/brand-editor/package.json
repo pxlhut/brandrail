@@ -22,12 +22,14 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "registry"
+    "registry.json",
+    "registry/brand-editor",
+    "!registry/brand-editor/**/*.test.tsx"
   ],
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p registry/tsconfig.json --noEmit"
   },
   "dependencies": {
     "@pxlhut/brand-core": "workspace:*",
@@ -40,10 +42,16 @@
     "access": "public"
   },
   "devDependencies": {
+    "@base-ui/react": "^1.8.0",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "class-variance-authority": "^0.7.1",
+    "cn": "^0.3.0",
     "jsdom": "^30.0.1",
+    "lucide-react": "^1.45.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   }

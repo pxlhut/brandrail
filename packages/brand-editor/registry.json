@@ -1,0 +1,84 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "brand-editor",
+  "homepage": "https://www.npmjs.com/package/@pxlhut/brand-editor",
+  "items": [
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "brand-editor",
+      "type": "registry:component",
+      "title": "Brand Editor",
+      "description": "A settings screen that reshapes itself from a per-field control-tier config (locked/guided/direct/raw) — a pure rendering layer over the useBrandEditor hook from @pxlhut/brand-editor.",
+      "dependencies": ["@pxlhut/brand-core", "@pxlhut/brand-store", "@pxlhut/brand-editor", "lucide-react"],
+      "registryDependencies": ["alert", "badge", "button", "input", "label", "select", "slider", "tabs", "textarea"],
+      "files": [
+        { "path": "registry/brand-editor/index.ts", "type": "registry:component", "target": "components/brand-editor/index.ts" },
+        {
+          "path": "registry/brand-editor/brand-editor.tsx",
+          "type": "registry:component",
+          "target": "components/brand-editor/brand-editor.tsx"
+        },
+        {
+          "path": "registry/brand-editor/field-control.tsx",
+          "type": "registry:component",
+          "target": "components/brand-editor/field-control.tsx"
+        },
+        {
+          "path": "registry/brand-editor/field-copy.ts",
+          "type": "registry:component",
+          "target": "components/brand-editor/field-copy.ts"
+        },
+        {
+          "path": "registry/brand-editor/field-row.tsx",
+          "type": "registry:component",
+          "target": "components/brand-editor/field-row.tsx"
+        },
+        {
+          "path": "registry/brand-editor/preview-pane.tsx",
+          "type": "registry:component",
+          "target": "components/brand-editor/preview-pane.tsx"
+        },
+        {
+          "path": "registry/brand-editor/publish-bar.tsx",
+          "type": "registry:component",
+          "target": "components/brand-editor/publish-bar.tsx"
+        },
+        {
+          "path": "registry/brand-editor/controls/asset-control.tsx",
+          "type": "registry:component",
+          "target": "components/brand-editor/controls/asset-control.tsx"
+        },
+        {
+          "path": "registry/brand-editor/controls/color-control.tsx",
+          "type": "registry:component",
+          "target": "components/brand-editor/controls/color-control.tsx"
+        },
+        {
+          "path": "registry/brand-editor/controls/locked-control.tsx",
+          "type": "registry:component",
+          "target": "components/brand-editor/controls/locked-control.tsx"
+        },
+        {
+          "path": "registry/brand-editor/controls/raw-control.tsx",
+          "type": "registry:component",
+          "target": "components/brand-editor/controls/raw-control.tsx"
+        },
+        {
+          "path": "registry/brand-editor/controls/select-control.tsx",
+          "type": "registry:component",
+          "target": "components/brand-editor/controls/select-control.tsx"
+        },
+        {
+          "path": "registry/brand-editor/controls/slider-control.tsx",
+          "type": "registry:component",
+          "target": "components/brand-editor/controls/slider-control.tsx"
+        },
+        {
+          "path": "registry/brand-editor/controls/text-control.tsx",
+          "type": "registry:component",
+          "target": "components/brand-editor/controls/text-control.tsx"
+        }
+      ]
+    }
+  ]
+}
