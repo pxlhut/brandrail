@@ -19,7 +19,7 @@ Scope name: **`@pxlhut`** (D2)
 - [x] 15 ssr delivery — 2026-09-15
 - [x] 16 editor headless — 2026-09-15
 - [x] 17 editor shadcn — 2026-09-15
-- [ ] 18 release
+- [x] 18 release — 2026-09-15 (all four packages published at 0.1.1; demo recording still outstanding, see below)
 
 ## Deviations
 
@@ -1142,17 +1142,45 @@ ships too:
   changeset group moves them together regardless of which actually
   changed), published through the now-working automated `release.yml`
   this time, since a *version bump* to an *existing* package isn't subject
-  to the interactive-first-publish rule above. **The lesson for next
-  time**: a brand-new package's one unavoidable manual step is
-  `npm login` followed by `pnpm publish --access public --no-git-checks`
-  from that package's own directory — never plain `npm publish` — even
-  though only `npm publish`/`npm login` can actually complete that first,
-  interactive publish.
+  to the interactive-first-publish rule above.
+- **The first `0.1.1` attempt through `release.yml` also 404'd — same
+  error, still not the workflow.** Ruled out, in order, before finding
+  the real cause: the token's org-level permission (re-verified correct,
+  re-generated from scratch); the per-package "Publishing access" setting
+  on npmjs.com (already the permissive default); classic Automation
+  tokens as a fallback (no longer offered — npm's UI only issues granular
+  tokens now); pnpm's own publish implementation (replaced with
+  `scripts/publish-unpublished.mjs`: `pnpm pack`, which correctly resolves
+  `workspace:*`, piped into plain `npm publish` on the tarball — the
+  combination that had already worked for the manual `0.1.0` release).
+  That script *also* 404'd at first, on every package, via plain `npm
+  publish` with no pnpm involved at all — proof the fault was never
+  pnpm's, only ever the token.
+- **The actual cause**: the granular access token's top-level "Packages
+  and scopes → Permissions" was left at **No access** the whole time —
+  only the separate "Organizations → Permissions" section had been set to
+  Read and write for `pxlhut`. The token page's own layout reads as if
+  the Organizations grant is what governs org-scoped package publishing;
+  it isn't, or isn't sufficient alone. Setting the top-level permission to
+  **Read and write (publish and stage)** *in addition to* the
+  Organizations grant fixed every package on the first try, `@pxlhut/
+  brand-core` (pre-existing) included — confirming this, not the
+  interactive-first-publish rule, was the actual blocker for the version
+  bump. **The lesson for next time**: set *both* permission sections on a
+  granular token meant to publish org-scoped packages, and keep using
+  `scripts/publish-unpublished.mjs` (`pnpm pack` + `npm publish`) rather
+  than `pnpm publish`/`changeset publish` directly — not because pnpm's
+  publish path was ever shown to be broken, but because it was never
+  cleared either, and the combination that's now confirmed working twice
+  end-to-end is worth not re-litigating.
 - Confirmed on the real registry afterward, not assumed: all four
   packages' `dependencies` now show a real resolved version
-  (`registry.npmjs.org/@pxlhut/<name>/0.1.1`), and a scratch-project
-  `npm install @pxlhut/brand-core@0.1.1 @pxlhut/brand-store@0.1.1`
-  succeeds.
+  (`registry.npmjs.org/@pxlhut/<name>/0.1.1`, `brand-store-lucid` a couple
+  of minutes behind the other three — npm's own "your package is being
+  processed" async queue for larger packages, not a failure), a
+  scratch-project `npm install @pxlhut/brand-core@0.1.1 @pxlhut/brand-
+  store@0.1.1` succeeds, and the exact `docs/quickstart.md` snippet runs
+  clean against the real, published packages — not tarballs this time.
 
 **Genuinely remaining:**
 
